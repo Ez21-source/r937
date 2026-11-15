@@ -140,6 +140,24 @@ table.edit input:focus{border-color:var(--accent);background:var(--surface);outl
 table.edit input.num{text-align:center;width:78px}
 table.edit td.nm{min-width:180px}
 table.edit tr:nth-child(even) td{background:color-mix(in srgb,var(--surface-2) 45%,transparent)}
+/* v7: divided entry grid */
+table.edit{border:1px solid var(--line);border-collapse:separate;border-spacing:0;border-radius:10px;background:var(--surface)}
+table.edit th{background:var(--surface-2);color:var(--ink);font-weight:600;padding:8px 6px;border-bottom:1px solid var(--line);text-align:center;white-space:normal;line-height:1.3;min-width:86px;vertical-align:bottom}
+table.edit th:first-child{border-start-start-radius:10px} table.edit th:last-child{border-start-end-radius:10px}
+table.edit th:nth-child(2){text-align:start;min-width:170px}
+table.edit th:first-child,table.edit th:last-child{min-width:0}
+table.edit th+th,table.edit td+td{border-inline-start:1px solid var(--line)}
+table.edit td{padding:4px;border-bottom:1px solid var(--line);background:var(--surface)}
+table.edit tr:last-child td{border-bottom:0}
+table.edit tr:nth-child(even) td{background:color-mix(in srgb,var(--surface-2) 40%,var(--surface))}
+table.edit input{border:1px solid color-mix(in srgb,var(--line) 70%,transparent);background:var(--bg);padding:7px 8px}
+table.edit input.num{width:100%;min-width:76px}
+table.edit td.idx{width:30px;min-width:30px;font-weight:600}
+table.edit td.idx,table.edit th:first-child{position:sticky;right:0;z-index:2}
+table.edit td.nm,table.edit th:nth-child(2){position:sticky;right:30px;z-index:2;box-shadow:-6px 0 8px -6px rgba(0,0,0,.18)}
+table.edit th:first-child,table.edit th:nth-child(2){z-index:3}
+.pcol .tbl-wrap{border-radius:10px}
+@media (max-width:700px){ table.edit td.nm{min-width:150px} table.edit th:nth-child(2){min-width:150px} }
 .rm{border:0;background:none;color:var(--muted);cursor:pointer;border-radius:6px;width:26px;height:26px;display:grid;place-items:center}
 .rm:hover{color:var(--bad);background:color-mix(in srgb,var(--bad) 10%,transparent)}
 .rm svg{width:14px;height:14px}
@@ -192,6 +210,35 @@ table.sh td.bar{width:90px}
 .barline span{display:block;height:100%;border-radius:4px}
 .c0 .barline span{background:var(--s-p0)} .c1 .barline span{background:var(--s-accent)}
 .sh-none{color:var(--s-muted);font-size:12px;padding:6px 0}
+/* v7: single comparison table */
+.cmp-sum{display:flex;gap:8px 22px;flex-wrap:wrap;padding:8px 14px;background:var(--s-band);border-bottom:1px solid var(--s-line);font-size:12px;color:var(--s-muted);align-items:center}
+.cmp-sum b{color:var(--s-ink);font-size:14px;margin-inline:4px}
+.cmp-sum .pv{margin-inline-end:6px}
+.cmp-sum .dl,table.cmpt td .dl{direction:ltr;unicode-bidi:isolate;font-weight:600;font-size:11.5px;white-space:nowrap}
+.dl.n{color:#2F5E9E;direction:rtl!important}
+table.cmpt th,table.cmpt td{padding:5px 10px}
+table.cmpt tr.h1 th{white-space:nowrap;font-size:11.5px;font-weight:600;border-bottom:0;padding-top:9px;padding-bottom:2px}
+table.cmpt th.pc1{color:var(--s-accent);text-align:center;box-shadow:inset 0 -2px 0 var(--s-accent)}
+table.cmpt th.pc0{color:var(--s-p0);text-align:center;box-shadow:inset 0 -2px 0 var(--s-p0)}
+table.cmpt th.leg{font-weight:500;color:var(--s-muted)}
+table.cmpt th.leg span{display:inline-flex;align-items:center;gap:5px;margin-inline-end:12px}
+table.cmpt th.leg i{width:12px;height:7px;border-radius:2px;display:inline-block}
+i.c1{background:var(--s-accent)} i.c0{background:var(--s-p0)}
+table.cmpt th.n{text-align:center}
+table.cmpt .rk{width:22px;text-align:center;color:var(--s-muted)}
+table.cmpt td.m{font-weight:700;color:var(--s-ink)}
+table.cmpt td.pv{color:var(--s-muted)}
+table.cmpt td.ch{width:210px}
+table.cmpt tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--s-band) 55%,transparent)}
+.b2{height:9px;border-radius:4px;background:var(--s-band);overflow:hidden}
+.b2.thin{height:5px}
+table.cmpt td.ch{width:250px}
+.chr{display:flex;align-items:center;gap:6px} .chr+.chr{margin-top:2px}
+.chr .b2{flex:1}
+.chr i{font-style:normal;font-size:10px;color:var(--s-muted);width:40px;text-align:start;line-height:1;white-space:nowrap}
+table.cmpt th small{font-weight:400;font-size:10px;color:var(--s-muted)}
+.b2 span{display:block;height:100%;border-radius:4px}
+.b2 .c1{background:var(--s-accent)} .b2 .c0{background:var(--s-p0)}
 .sh-foot{color:var(--s-muted);font-size:11px;border-top:1px solid var(--s-line);padding-top:8px;display:flex;justify-content:space-between}
 #exportHolder{position:fixed;top:0;left:0;width:0;height:0;overflow:hidden;z-index:-1;pointer-events:none}
 
@@ -343,13 +390,15 @@ table.sh td.bar{width:90px}
 .ig-ft{display:flex;justify-content:space-between;gap:16px;color:#7A8894;font-size:11.5px;padding:12px 40px 20px;border-top:1px solid #E3E9EE}
 
 @media (max-width:900px){
-  .shell{grid-template-columns:1fr}
+  .shell{grid-template-columns:minmax(0,1fr)}
+  .side:not(.open){visibility:hidden;transition:transform .2s,visibility 0s .2s}
   .side{position:fixed;top:0;bottom:0;inset-inline-start:0;height:auto;width:min(300px,86vw);z-index:40;transform:translateX(105%);transition:transform .2s;padding-top:calc(14px + env(safe-area-inset-top,0px));box-shadow:0 0 40px rgba(0,0,0,.25)}
   .side.open{transform:none}
   .btn-menu{display:inline-flex}
   .info-lay{grid-template-columns:1fr}
 }
-@media (max-width:700px){ .topbar .lbl{display:none} .brand small{display:none} }
+@media (max-width:700px){ .topbar .lbl{display:none} .brand small{display:none} .ptable th:nth-child(4),.ptable td:nth-child(4),.ptable th:nth-child(5),.ptable td:nth-child(5){display:none} }
+#main{min-width:0}
 
 @media (max-width:820px){
   .card-body{grid-template-columns:1fr}
@@ -384,11 +433,11 @@ table.sh td.bar{width:90px}
       <button class="btn ghost icon" id="btnRedo" type="button" title="إعادة (Ctrl+Shift+Z)" aria-label="إعادة" disabled><svg class="flip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
       <button class="btn" id="btnSave" type="button" title="حفظ (Ctrl+S)"><span class="dirty-dot"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3 3v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M8 3v5h7V3"/><path d="M8 21v-7h8v7"/></svg><span class="lbl">حفظ</span></button>
       <button class="btn" id="btnInstall" type="button" hidden>تثبيت التطبيق</button>
-      <button class="btn" id="btnImport" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+      <button class="btn" id="btnImport" type="button" title="استيراد ملف Excel" aria-label="استيراد ملف Excel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="m9 12 6 6M15 12l-6 6"/></svg>
         <span class="lbl">استيراد Excel</span></button>
       <input type="file" id="fileInput" accept=".xlsx,.xlsm" hidden>
-      <button class="btn" id="btnFromDb" type="button" title="فتح ملف الأرقام المرسل من «قاعدة بلاغات المراكز 937»">
+      <button class="btn" id="btnFromDb" type="button" title="استيراد من قاعدة البلاغات" aria-label="استيراد من قاعدة البلاغات">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3"/><path d="m16 17 3 3 3-3"/><path d="M19 13v7"/></svg>
         <span class="lbl">استيراد من القاعدة</span></button>
       <input type="file" id="dbInput" accept=".json,application/json" hidden>
@@ -415,6 +464,8 @@ table.sh td.bar{width:90px}
           <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button>
         <div class="menu" id="moreMenu" hidden>
           <button type="button" data-more="restore"><span>استعادة بيانات الملف الأصلي</span></button>
+          <button type="button" data-more="theme"><span>تبديل الخلفية (فاتحة / داكنة)</span></button>
+          <hr>
           <button type="button" data-more="clear"><span>بدء ملف فارغ</span></button>
         </div>
       </div>
@@ -547,22 +598,29 @@ function load(){
   return seedState();
 }
 let saveTimer=null;
-const APP_VER='6';
+const APP_VER='8';
 const UI_KEY='rep937-ui-v1';
 const INFO_DEF={v:4,tpl:'A',cols:3,org1:'تجمع مكة المكرمة الصحي',org2:'الرعاية الصحية الأولية',org3:'تجربة المستفيد',title:'{اسم_التقرير}',sub:'{الفترة} ({تاريخ_الفترة}) مقارنةً بـ {الفترة_السابقة}',tag:'إجمالي البلاغات · رضا المستفيد · مستوى الخدمة',by:'عبدالعزيز الوذيناني',sup:'منيرة المزيني',date:'',logo:'',cTotal:'#1E88C8',cSat:'#7CB342',cSl:'#1B3A5C',navy:'#1B3A5C',cFoot:'#5378C0',t1:80,t2:90,prevBar:true,prevVal:true,chg:true,rank:true,strip:true,secSub:true,grpHead:true,satParts:true,q:3,font:'plex',fsize:100,kpis:[['total',true],['sat',true],['sl',true]],secs:{},order:[]};
-const RF_DEF={limit:0,hideGroups:[]};
+const RF_DEF={limit:0,hideGroups:[],cmp:'one'};
 function fixState(s){
   if(s.info && s.info.v===3){ s.info.v=4; s.info.grpHead=true; Object.values(s.info.secs||{}).forEach(x=>{ delete x.top; }); }
   if(!s.info || s.info.v!==4) s.info=JSON.parse(JSON.stringify(INFO_DEF));
   s.info={...JSON.parse(JSON.stringify(INFO_DEF)),...s.info}; if(!Array.isArray(s.info.kpis)||s.info.kpis.length!==3) s.info.kpis=JSON.parse(JSON.stringify(INFO_DEF.kpis));
   if(!s.openOn) s.openOn='weekly';
-  s.rf={...RF_DEF,...(s.rf||{})}; if(!Array.isArray(s.rf.hideGroups)) s.rf.hideGroups=[];
+  s.rf={...RF_DEF,...(s.rf||{})}; if(!s.rf.cmp) s.rf.cmp='one'; if(!Array.isArray(s.rf.hideGroups)) s.rf.hideGroups=[];
   if(typeof s.autosave!=='boolean') s.autosave=true;
   s.current=Math.max(0,Math.min(s.current||0,s.reports.length-1));
   return s;
 }
 function ensureVisible(){ if(cur() && cur().hidden){ const i=state.reports.findIndex(r=>!r.hidden); if(i>=0) state.current=i; } }
 const fold=s=>String(s??'').toLowerCase().replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/ـ/g,'').replace(/\s+/g,' ').trim();
+const THEME_KEY='rep937-theme';
+function getTheme(){ try{ return localStorage.getItem(THEME_KEY)||'auto'; }catch(e){ return 'auto'; } }
+function applyTheme(t){
+  const r=document.documentElement; if(t==='light'||t==='dark') r.dataset.theme=t; else delete r.dataset.theme;
+}
+function setTheme(t){ try{ localStorage.setItem(THEME_KEY,t); }catch(e){} applyTheme(t); }
+applyTheme(getTheme());
 function saveUI(){ try{ localStorage.setItem(UI_KEY, JSON.stringify({view, cur:cur()?.id})); }catch(e){} }
 function openDefault(){
   if(state.openOn==='last') return;
@@ -790,6 +848,7 @@ function buildSheet(rep){
       const sec=rep.sections[d.key];
       const main=d.cols.includes('pct')?'pct':(d.cols.includes('count')?'count':'avg');
       const max=Math.max(1e-9,...sec.p.flatMap(p=>p.rows.map(r=>r[main]||0)));
+      if(!state.rf || state.rf.cmp!=='two'){ html+=`<div class="blk">${si===0?`<div class="sh-group">${g.title}</div>`:''}${cmpSection(rep,d,lim)}</div>`; return; }
       const cols=[0,1].map(pi=>{
         const p=sec.p[pi];
         let sum='';
@@ -809,6 +868,30 @@ function buildSheet(rep){
   html+=`<div class="blk sh-foot-blk"><div class="sh-foot"><span>${esc(rep.name)} · ${esc(rep.periods[0].label)} مقابل ${esc(rep.periods[1].label)}</span><span>أُعدّ في ${now.toLocaleDateString('ar-SA-u-ca-gregory-nu-latn')}</span></div></div>`;
   el.innerHTML=html;
   return el;
+}
+
+/* one table per section: current period values, previous value, change, and an in-row comparison chart */
+function cmpSection(rep,d,lim){
+  const sec=rep.sections[d.key], P=rep.periods, p1=sec.p[1], p0=sec.p[0];
+  const main=d.metric==='count'?'count':(d.metric==='sl'?'pct':'avg'), isR=RATIO.has(main);
+  const prev=new Map(p0.rows.filter(r=>String(r.name||'').trim()).map(r=>[fold(r.name),r]));
+  const rows=lim(p1.rows.filter(r=>String(r.name||'').trim()));
+  const mx=isR?1:Math.max(1e-9,...rows.flatMap(r=>{ const q=prev.get(fold(r.name)); return [r[main]||0,q?(q[main]||0):0]; }));
+  const dl=(a,b,good=isR,ratio=isR)=>{ const x=deltaInfo(a,b,good,ratio); if(!x) return '<span class="dl f">—</span>';
+    if(x.cls==='flat') return '<span class="dl f">● 0</span>';
+    return `<span class="dl ${x.cls.endsWith('good')?'g':'b'}"${ratio?' style="direction:rtl"':''}>${b>a?'▲':'▼'} ${x.txt.replace(/^[+-]/,'')}</span>`; };
+  const sv=(a,b,r)=>`<b>${r?fmtPct(b):fmtInt(b)}</b><span class="pv">${esc(P[0].label)}: ${r?fmtPct(a):fmtInt(a)}</span>`;
+  let sum='';
+  if(d.total) sum=`<div class="cmp-sum"><span>اجمالي البلاغات ${sv(totalOf(p0),totalOf(p1),false)} ${dl(totalOf(p0),totalOf(p1),false,false)}</span></div>`;
+  else if(d.summary && d.metric==='sat') sum=`<div class="cmp-sum">${['avg','comm','proc'].map(k=>{ const a=p0.summary[k], b=p1.summary[k]; return `<span>${KLABEL[k]} ${sv(a,b,true)} ${a!=null&&b!=null?dl(a,b,true,true):''}</span>`; }).join('')}</div>`;
+  else if(d.summary && d.metric==='sl'){ const a=p0.summary.overall, b=p1.summary.overall; sum=`<div class="cmp-sum"><span>داخل مستوى الخدمة ${sv(a,b,true)} ${a!=null&&b!=null?dl(a,b,true,true):''}</span></div>`; }
+  const n=d.cols.length;
+  const head=`<thead><tr class="h1"><th colspan="2"></th><th colspan="${n}" class="pc1">${esc(P[1].label)}</th><th>التغيّر</th><th class="leg"><span><i class="c1"></i>${esc(P[1].label)}</span><span><i class="c0"></i>${esc(P[0].label)}</span></th></tr>
+    <tr><th class="rk">#</th><th>${ENT[d.entity].name}</th>${d.cols.map(k=>`<th class="n">${colLabel(d.entity,d.metric,k)}</th>`).join('')}<th class="n">عن ${esc(P[0].label)}</th><th>المقارنة <small>(الرقم الصغير = ${esc(P[0].label)})</small></th></tr></thead>`;
+  const body=rows.map((r,i)=>{ const q=prev.get(fold(r.name)), a=q?q[main]:null, b=r[main];
+    const w=v=>Math.max(0,Math.min(100,(v||0)/mx*100)).toFixed(1);
+    return `<tr><td class="rk">${i+1}</td><td class="nm">${esc(r.name)}</td>${d.cols.map(k=>`<td class="n${k===main?' m':''}">${fmtVal(k,r[k])}</td>`).join('')}<td class="n">${a==null?'<span class="dl n">جديد</span>':dl(a,b)}</td><td class="ch"><div class="chr"><div class="b2"><span class="c1" style="width:${w(b)}%"></span></div><i></i></div><div class="chr"><div class="b2 thin"><span class="c0" style="width:${a==null?0:w(a)}%"></span></div><i>${a==null?'':fmtVal(main,a)}</i></div></td></tr>`; }).join('');
+  return `<div class="sh-sec cmp"><h4>${esc(d.title)}<small>${METRIC_NAME[d.metric]} · ${esc(P[1].label)} مقارنةً بـ ${esc(P[0].label)}</small></h4>${sum}${rows.length?`<table class="sh cmpt">${head}<tbody>${body}</tbody></table>`:`<div class="sh-none" style="padding:8px 14px">لا توجد بيانات في ${esc(P[1].label)}</div>`}</div>`;
 }
 
 /* ---------- events ---------- */
@@ -909,6 +992,7 @@ document.addEventListener('click',e=>{ if(!e.target.closest('.menu-wrap')) close
 document.getElementById('exportMenu').addEventListener('click',e=>{ const b=e.target.closest('[data-exp]'); if(!b) return; closeMenus(); runExport(b.dataset.exp); });
 document.getElementById('moreMenu').addEventListener('click',e=>{
   const b=e.target.closest('[data-more]'); if(!b) return; closeMenus();
+  if(b.dataset.more==='theme'){ const dark=document.documentElement.dataset.theme==='dark' || (!document.documentElement.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches); setTheme(dark?'light':'dark'); if(view==='panel') renderMain(); return; }
   if(b.dataset.more==='restore') dialog({title:'استعادة بيانات الملف الأصلي؟', body:'ستُستبدل كل البيانات الحالية ببيانات الملف الأصلي.', actions:[{label:'استعادة',cls:'primary',run:()=>{ state=seedState(); save(); renderAll(); toast('استُعيدت بيانات الملف الأصلي'); }},{label:'إلغاء'}]});
   if(b.dataset.more==='clear') dialog({title:'بدء ملف فارغ؟', body:'ستُحذف كل التقارير الحالية ويبدأ النموذج بتقرير أسبوعي فارغ.', actions:[{label:'بدء ملف فارغ',cls:'primary',run:()=>{ state={reports:[newReport('weekly','الأسبوعي')],current:0}; save(); renderAll(); }},{label:'إلغاء'}]});
 });
@@ -1269,6 +1353,7 @@ function renderReportPage(){
   b.innerHTML=`<div class="fbar">
       <div class="field grow"><label>الأقسام الظاهرة</label><div class="chips">${groups.map(g=>`<button type="button" class="chip" data-rfg="${esc(g)}" aria-pressed="${!rf.hideGroups.includes(g)}">${esc(g)}</button>`).join('')}</div></div>
       <div class="field"><label for="rfLim">الصفوف في كل جدول</label><select class="inp" id="rfLim" data-rf="limit">${[0,3,5,10,15].map(n=>`<option value="${n}" ${rf.limit==n?'selected':''}>${n?'أعلى '+n:'الكل'}</option>`).join('')}</select></div>
+      <div class="field"><label for="rfCmp">شكل المقارنة</label><select class="inp" id="rfCmp" data-rfs="cmp"><option value="one" ${rf.cmp!=='two'?'selected':''}>جدول واحد مع رسم مقارنة</option><option value="two" ${rf.cmp==='two'?'selected':''}>جدولان متجاوران</option></select></div>
       ${active?`<button type="button" class="btn sm ghost" data-act="rf-clear">مسح الفلاتر</button>`:''}
       <button type="button" class="btn sm" data-pexp="png-one">PNG</button>
       <button type="button" class="btn sm primary" data-pexp="pdf-one">PDF</button>
@@ -1434,9 +1519,9 @@ async function buildInfoXlsx(rep){
 
 /* ---------- v3: infographic — templates + integrated settings panel ---------- */
 const IG_TITLES={
-  'hospital-count':'البلاغات حسب القطاع','hospital-sat':'رضا المستفيد حسب القطاع','hospital-sl':'مستوى الخدمة حسب القطاع',
-  'facility-count':'البلاغات حسب المركز الصحي','facility-sat':'رضا المستفيد حسب المركز الصحي','facility-sl':'مستوى الخدمة حسب المركز الصحي',
-  'category-count':'البلاغات حسب التصنيف الفرعي','category-sat':'رضا المستفيد حسب التصنيف الفرعي','category-sl':'مستوى الخدمة حسب التصنيف الفرعي'};
+  'hospital-count':'البلاغات حسب القطاع','hospital-sat':'رضا المستفيد حسب القطاع','hospital-sl':'داخل مستوى الخدمة حسب القطاع',
+  'facility-count':'البلاغات حسب المركز الصحي','facility-sat':'رضا المستفيد حسب المركز الصحي','facility-sl':'داخل مستوى الخدمة حسب المركز الصحي',
+  'category-count':'البلاغات حسب التصنيف الفرعي','category-sat':'رضا المستفيد حسب التصنيف الفرعي','category-sl':'داخل مستوى الخدمة حسب التصنيف الفرعي'};
 const IG_ENT={hospital:'قطاعات',facility:'مراكز',category:'تصنيفات'};
 const IG_GRP={hospital:'القطاعات',facility:'المراكز الصحية',category:'التصانيف الفرعية'};
 const IG_TPL=[['A','كالملف المرفق','بطاقات المؤشرات في الأعلى، ثم الأقسام في أعمدة، وتذييل بالإعداد والإشراف'],['B','لوحة جانبية','المؤشرات في عمود كحلي جانبي بحلقات للنسب، والأقسام في عمودين'],['C','مقارنة بالنقطتين','نقطة للفترة السابقة وأخرى للحالية، والخط بينهما يوضح التحسن أو التراجع'],['D','جدول للطباعة','جداول بأعمدة الفترتين والتغيّر، والنسب ملوّنة حسب مستواها']];
@@ -1517,7 +1602,7 @@ function igA(rep){
   const grid=c.rank?'24px minmax(0,1.6fr) minmax(0,1fr) 76px':'minmax(0,1.6fr) minmax(0,1fr) 76px';
   const sec=s=>{ const mx=s.isRate?1:Math.max(1,...s.rows.map(x=>Math.max(x.v||0,c.prevBar?(x.p||0):0)));
     return `<div class="sc" style="--c:${igCol(s)}"><div class="sh"><div class="ib">${igIco(s)}</div><div style="flex:1;min-width:0"><h3>${esc(s.title)}</h3>${c.secSub?`<small>${s.sub}</small>`:''}</div>${s.tot!=null?`<span class="tt2">${s.isRate?igF1(s.tot):igFi(s.tot)}</span>`:''}</div>
-     ${s.rows.length?s.rows.map((r,i)=>`<div class="row" style="grid-template-columns:${grid}${c.chg?' 62px':''}">${c.rank?`<span class="rk">${i+1}</span>`:''}<span class="nm">${esc(r.name)}${s.metric==='sat'&&r.n!=null?`<small>${igFi(r.n)} بلاغ</small>`:''}</span><div><div class="tr"><i style="width:${Math.min(100,(r.v||0)/mx*100)}%;background:${s.isRate?igRc(r.v):c.cTotal}"></i></div>${c.prevBar?`<div class="tr th"><i style="width:${Math.min(100,(r.p||0)/mx*100)}%"></i></div>`:''}</div><span class="vv">${s.isRate?igF1(r.v):igFi(r.v)}${c.prevVal?`<small>${igPrevLbl(P)}: ${s.isRate?igF1(r.p):igFi(r.p)}</small>`:''}</span>${c.chg?igPill(igChg(r.p,r.v,s.isRate)):''}</div>`).join(''):`<div class="none">لا توجد بيانات</div>`}</div>`; };
+     ${s.rows.length?s.rows.map((r,i)=>`<div class="row" style="grid-template-columns:${grid}${c.chg?' 62px':''}">${c.rank?`<span class="rk">${i+1}</span>`:''}<span class="nm${s.entity==='category'?' full':''}">${esc(r.name)}${s.metric==='sat'&&r.n!=null?`<small>${igFi(r.n)} بلاغ</small>`:''}</span><div><div class="tr"><i style="width:${Math.min(100,(r.v||0)/mx*100)}%;background:${s.isRate?igRc(r.v):c.cTotal}"></i></div>${c.prevBar?`<div class="tr th"><i style="width:${Math.min(100,(r.p||0)/mx*100)}%"></i></div>`:''}</div><span class="vv">${s.isRate?igF1(r.v):igFi(r.v)}${c.prevVal?`<small>${igPrevLbl(P)}: ${s.isRate?igF1(r.p):igFi(r.p)}</small>`:''}</span>${c.chg?igPill(igChg(r.p,r.v,s.isRate)):''}</div>`).join(''):`<div class="none">لا توجد بيانات</div>`}</div>`; };
   el.innerHTML=`<style>
   .igA{width:1520px;background:#F6F9FC;font-family:${igFontStack()};direction:rtl;color:#1C2B39;padding:26px 30px 0;line-height:1.45}
   .igA .hd{display:grid;grid-template-columns:1fr 2fr 1fr;align-items:center;margin-bottom:22px}
@@ -1546,7 +1631,8 @@ function igA(rep){
   .igA .row{display:grid;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #F3F5F8;min-height:58px}
   .igA .row:last-child{border:0}
   .igA .rk{width:22px;height:22px;border-radius:50%;background:#E7F0F8;color:${NAVY};font-size:11px;display:grid;place-items:center;font-weight:700}
-  .igA .nm{font-size:14px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden} .igA .nm small{color:#8A97A4;font-size:10.5px;margin-inline-start:6px;unicode-bidi:isolate;display:inline-block}
+  .igA .nm{font-size:14px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .igA .nm.full{display:block;-webkit-line-clamp:unset;overflow:visible} .igA .nm small{color:#8A97A4;font-size:10.5px;margin-inline-start:6px;unicode-bidi:isolate;display:inline-block}
   .igA .vv{text-align:center;font-weight:700;font-size:16px;line-height:1.25} .igA .vv small{display:block;color:#9AA6B2;font-size:10px;font-weight:500}
   .igA .none{color:#9AA6B2;font-size:13px;padding:8px 0}
   .igA .ft{margin:24px -30px 0;background:${c.cFoot};color:#fff;display:flex;justify-content:space-between;align-items:center;padding:18px 34px;gap:20px}
@@ -1574,7 +1660,7 @@ function igB(rep){
   const sec=s=>{ const mx=s.isRate?1:Math.max(1,...s.rows.map(x=>Math.max(x.v||0,x.p||0)));
     return `<div class="sc"><div class="sh">${igIco(s)}<h3>${esc(s.title)}</h3>${c.secSub?`<small>${s.sub}</small>`:''}</div>
      ${c.prevBar?`<div class="lgd"><span><i style="background:${c.cTotal}"></i>${esc(P[1].label)}</span><span><i style="background:${NAVY};width:2px"></i>${esc(P[0].label)}</span></div>`:''}
-     ${s.rows.map((r,i)=>`<div class="row">${c.rank?`<span class="rk">${i+1}</span>`:''}<span>${esc(r.name)}</span><div class="bar"><i style="width:${(r.v||0)/mx*100}%;background:${s.isRate?igRc(r.v):c.cTotal}"></i>${c.prevBar&&r.p!=null?`<u style="right:${Math.min(99.5,r.p/mx*100)}%"></u>`:''}</div><span class="v" style="color:${s.isRate?igRc(r.v):NAVY}">${s.isRate?igF1(r.v):igFi(r.v)}</span>${c.chg?igPill(igChg(r.p,r.v,s.isRate)):''}</div>`).join('')||'<div class="none">لا توجد بيانات</div>'}</div>`; };
+     ${s.rows.map((r,i)=>`<div class="row${s.entity==='category'?' full':''}">${c.rank?`<span class="rk">${i+1}</span>`:''}<span>${esc(r.name)}</span><div class="bar"><i style="width:${(r.v||0)/mx*100}%;background:${s.isRate?igRc(r.v):c.cTotal}"></i>${c.prevBar&&r.p!=null?`<u style="right:${Math.min(99.5,r.p/mx*100)}%"></u>`:''}</div><span class="v" style="color:${s.isRate?igRc(r.v):NAVY}">${s.isRate?igF1(r.v):igFi(r.v)}</span>${c.chg?igPill(igChg(r.p,r.v,s.isRate)):''}</div>`).join('')||'<div class="none">لا توجد بيانات</div>'}</div>`; };
   el.innerHTML=`<style>
   .igB{width:1520px;display:grid;grid-template-columns:380px 1fr;font-family:${igFontStack()};direction:rtl;color:#1C2B39;background:#F3F6FA;line-height:1.45}
   .igB .sd{background:linear-gradient(180deg,${NAVY},#12283F);color:#fff;padding:34px 30px;display:flex;flex-direction:column;gap:22px}
@@ -1593,6 +1679,7 @@ function igB(rep){
   .igB .row{display:grid;grid-template-columns:${c.rank?'20px ':''}minmax(0,1.5fr) minmax(0,1.3fr) 64px${c.chg?' 58px':''};gap:10px;align-items:center;padding:6px 0;font-size:13px;border-bottom:1px dashed #E6EBF0}
   .igB .row>span:nth-child(${c.rank?2:1}){display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .igB .row{padding:9px 0}
+  .igB .row.full>span{display:block!important;-webkit-line-clamp:unset!important;overflow:visible!important}
   .igB .row:last-child{border:0} .igB .rk{color:#9AA6B2;font-size:11px;text-align:center}
   .igB .bar{position:relative;height:16px;background:#F0F4F8;border-radius:4px;overflow:hidden}
   .igB .bar i{position:absolute;top:0;bottom:0;right:0;border-radius:4px} .igB .bar u{position:absolute;top:-2px;bottom:-2px;width:2px;background:${NAVY};opacity:.55}
@@ -1613,7 +1700,7 @@ function igC(rep){
   const kp=x=>{ const [l,v,isR]=K[x]; return `<div class="kp"><div class="l">${l}</div><div class="v">${isR?igF1(v[1]):igFi(v[1])}</div><div class="s">${c.chg?igPill(igChg(v[0],v[1],isR)):''}<span>${esc(P[0].label)}: ${isR?igF1(v[0]):igFi(v[0])}</span></div></div>`; };
   const sec=s=>{ const vals=s.rows.flatMap(r=>[r.v,r.p]).filter(x=>x!=null); const lo=s.isRate&&vals.length?Math.max(0,Math.floor((Math.min(...vals)-.05)*10)/10):0, hi=s.isRate?1:Math.max(1,...vals); const pos=v=>((v-lo)/((hi-lo)||1)*100);
     return `<div class="sc"><h3>${igIco(s)}${esc(s.title)}${c.secSub?`<small>${s.sub}</small>`:''}</h3>${s.rows.map((r,i)=>{ const a=r.p, b=r.v, good=s.isRate?(b>=(a??b)):(b<=(a??b)), col=good?'#2E7D32':'#C62828';
-      return `<div class="row">${c.rank?`<span class="rk">${i+1}</span>`:''}<span>${esc(r.name)}</span><div class="db">${a!=null&&b!=null?`<b style="right:${Math.min(pos(a),pos(b))}%;width:${Math.abs(pos(a)-pos(b))}%;background:${col}"></b>`:''}${a!=null?`<i style="right:${pos(a)}%;background:#AFC4D8"></i>`:''}${b!=null?`<i style="right:${pos(b)}%;background:${s.isRate?igRc(b):c.cTotal}"></i>`:''}</div><span class="v">${s.isRate?igF1(b):igFi(b)}</span></div>`; }).join('')||'<div class="none">لا توجد بيانات</div>'}</div>`; };
+      return `<div class="row${s.entity==='category'?' full':''}">${c.rank?`<span class="rk">${i+1}</span>`:''}<span>${esc(r.name)}</span><div class="db">${a!=null&&b!=null?`<b style="right:${Math.min(pos(a),pos(b))}%;width:${Math.abs(pos(a)-pos(b))}%;background:${col}"></b>`:''}${a!=null?`<i style="right:${pos(a)}%;background:#AFC4D8"></i>`:''}${b!=null?`<i style="right:${pos(b)}%;background:${s.isRate?igRc(b):c.cTotal}"></i>`:''}</div><span class="v">${s.isRate?igF1(b):igFi(b)}</span></div>`; }).join('')||'<div class="none">لا توجد بيانات</div>'}</div>`; };
   el.innerHTML=`<style>
   .igC{width:1240px;background:#fff;font-family:${igFontStack()};direction:rtl;color:#1C2B39;line-height:1.45}
   .igC .hd{background:linear-gradient(120deg,${c.cTotal},${NAVY});color:#fff;padding:30px 40px 90px;display:flex;justify-content:space-between;align-items:flex-start;gap:20px}
@@ -1630,6 +1717,7 @@ function igC(rep){
   .igC .rk{color:#9AA6B2;font-size:11px;text-align:center}
   .igC .row>span:nth-child(${c.rank?2:1}){display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .igC .row{padding:8px 0}
+  .igC .row.full>span{display:block!important;-webkit-line-clamp:unset!important;overflow:visible!important}
   .igC .db{position:relative;height:18px} .igC .db::before{content:"";position:absolute;left:0;right:0;top:8px;height:2px;background:#EEF2F6}
   .igC .db b{position:absolute;top:8px;height:2px} .igC .db i{position:absolute;top:3px;width:12px;height:12px;border-radius:50%;margin-right:-6px}
   .igC .v{font-weight:700;text-align:center} .igC .none{color:#9AA6B2;font-size:13px}
@@ -1817,6 +1905,10 @@ function renderPanel(){
       <div class="bulk" id="bulk"></div>
       <div class="tbl-wrap"><table class="ptable" id="ptable"></table></div>
     </section>
+    <section class="card pcard"><div class="card-head"><h3>المظهر</h3></div><div class="pc-b">
+      <div class="chips">${[['auto','تلقائي حسب الجهاز'],['light','خلفية فاتحة'],['dark','خلفية داكنة']].map(([v,l])=>`<button type="button" class="chip" data-themeset="${v}" aria-pressed="${getTheme()===v}">${l}</button>`).join('')}</div>
+      <p class="hint" style="margin:0">يغيّر خلفية التطبيق فقط. التقرير والإنفوجرافيك يُصدَّران بخلفية فاتحة دائماً.</p>
+    </div></section>
     <section class="card pcard"><div class="card-head"><h3>التقرير الافتراضي</h3></div><div class="pc-b">
       <div class="field" style="max-width:420px"><label for="openOn">يُفتح عند تشغيل التطبيق</label><select class="inp" id="openOn" data-openon>${[['weekly','أحدث تقرير أسبوعي'],['last','آخر تقرير كان مفتوحاً']].map(([v,t])=>`<option value="${v}" ${state.openOn===v?'selected':''}>${t}</option>`).join('')}<optgroup label="تقرير محدد">${state.reports.map(r=>`<option value="${r.id}" ${state.openOn===r.id?'selected':''}>${esc(r.name)}</option>`).join('')}</optgroup></select></div>
       <p class="hint" style="margin:0">التقرير الجديد يُنشأ أسبوعياً افتراضياً.</p>
@@ -1876,6 +1968,7 @@ function onInputV2(t){
     refreshInfo(); return true; }
   if(d.cfgsec!=null){ const h=new Set(state.info.hide); t.checked?h.delete(d.cfgsec):h.add(d.cfgsec); state.info.hide=[...h]; save(); refreshInfo(); return true; }
   if(d.rf!=null){ state.rf[d.rf]=+t.value; save(); renderBody(); return true; }
+  if(d.rfs!=null){ state.rf[d.rfs]=t.value; save(); renderBody(); return true; }
   if(d.flt!=null){ pf[d.flt]=t.value; renderPTable(); return true; }
   if(d.psel!=null){ t.checked?psel.add(d.psel):psel.delete(d.psel); renderPTable(); return true; }
   if(d.pall!=null){ panelRows().forEach(o=>t.checked?psel.add(o.r.id):psel.delete(o.r.id)); renderPTable(); return true; }
@@ -1892,10 +1985,11 @@ function onClickV2(b){
   if(b.id==='btnSave'||d.act==='save-now'){ saveNow(); return true; }
   if(b.id==='btnSide'){ openSide(); return true; }
   if(d.pexp){ runExport(d.pexp); return true; }
+  if(d.themeset){ setTheme(d.themeset); document.querySelectorAll('[data-themeset]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.themeset===d.themeset)); return true; }
   if(d.theme){ state.info.theme=d.theme; save(); renderBody(); return true; }
   if(d.act==='info-reset'){ state.info={...INFO_DEF, hide:[]}; save(); renderBody(); toast('أُعيدت الإعدادات الافتراضية'); return true; }
   if(d.rfg){ const h=new Set(state.rf.hideGroups); h.has(d.rfg)?h.delete(d.rfg):h.add(d.rfg); state.rf.hideGroups=[...h]; save(); renderBody(); return true; }
-  if(d.act==='rf-clear'){ state.rf={...RF_DEF, hideGroups:[]}; save(); renderBody(); return true; }
+  if(d.act==='rf-clear'){ state.rf={...RF_DEF, hideGroups:[], cmp:state.rf.cmp}; save(); renderBody(); return true; }
   if(d.act==='pf-clear'){ pf={q:'',type:'',src:'',vis:'',sort:''}; renderPanel(); return true; }
   if(d.pmove){ const [id,dir]=d.pmove.split(':'); const i=idxOf(id), j=i+(+dir); if(i<0||j<0||j>=state.reports.length) return true;
     keepCurrent(()=>{ const a=state.reports; [a[i],a[j]]=[a[j],a[i]]; }); afterPanelChange(); return true; }
