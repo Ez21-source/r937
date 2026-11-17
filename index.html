@@ -374,6 +374,8 @@ table.qt th:nth-child(n+3){min-width:96px}
 .igsec{border:1px solid var(--line);border-radius:10px;padding:8px;display:grid;gap:6px}
 .igsec.off{opacity:.55}
 .igp .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.qsw{display:grid;grid-template-columns:1fr 1fr;gap:6px}.qsw button{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:6px 8px;background:var(--surface);cursor:pointer;font:inherit;font-size:12.5px;color:var(--ink);text-align:start}.qsw button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}.qsw i{display:flex;gap:2px}.qsw i b{width:12px;height:18px;border-radius:3px;display:block}
+.hfbox{border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:grid;gap:6px}.hfrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12.5px}.hfrow select{width:auto}.hfrow input[type=color]{width:34px;height:26px;padding:0;border:1px solid var(--line);border-radius:6px}
 .colors{display:grid;grid-template-columns:1fr 1fr;gap:8px} .colors label{display:flex;gap:8px;align-items:center;font-size:13px;cursor:pointer}
 .colors input[type=color]{width:34px;height:28px;border:1px solid var(--line);border-radius:7px;padding:1px;background:var(--surface);cursor:pointer;flex:none}
 .logo-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap} .logo-row img{height:44px;width:auto;border:1px solid var(--line);border-radius:8px;padding:3px;background:#fff}
@@ -629,7 +631,7 @@ function load(){
   return seedState();
 }
 let saveTimer=null;
-const APP_VER='15';
+const APP_VER='17';
 const UI_KEY='rep937-ui-v1';
 const INFO_DEF={v:4,tpl:'A',cols:3,org1:'تجمع مكة المكرمة الصحي',org2:'الرعاية الصحية الأولية',org3:'تجربة المستفيد',title:'{اسم_التقرير}',sub:'{الفترة} ({تاريخ_الفترة}) مقارنةً بـ {الفترة_السابقة}',tag:'إجمالي البلاغات · رضا المستفيد · مستوى الخدمة',by:'عبدالعزيز الوذيناني',sup:'منيرة المزيني',date:'',logo:'',cTotal:'#1E88C8',cSat:'#7CB342',cSl:'#1B3A5C',navy:'#1B3A5C',cFoot:'#5378C0',t1:80,t2:90,prevBar:true,prevVal:true,chg:true,rank:true,strip:true,secSub:true,grpHead:true,satParts:true,q:3,font:'plex',fsize:100,kpis:[['total',true],['sat',true],['sl',true]],secs:{},order:[]};
 const RF_DEF={limit:0,hideGroups:[],cmp:'one'};
@@ -1101,7 +1103,7 @@ async function runExport(kind){
     if(kind==='xlsx-one') await saveFile(`${safeName(cur().name)}-${stamp()}.xlsx`, await buildXlsx([cur()]));
     if(cur().type==='quarterly'){ kind=({'png-one':'qinfo-png','pdf-one':'qinfo-pdf','info-png':'qinfo-png','info-pdf':'qinfo-pdf','info-xlsx':'qinfo-xlsx'})[kind]||kind; }
     else if(/^qinfo-/.test(kind)){ toast('افتح تقريراً ربعياً أولاً'); return; }
-    if(kind==='qinfo-png') await saveFile(`${safeName(cur().name)}-إنفوجرافيك-ربعي.png`, await buildQPng(cur()));
+    if(kind==='qinfo-png'){ const b=await buildQPng(cur()); await saveFile(`${safeName(cur().name)}-إنفوجرافيك-ربعي.${/zip/.test(b.type)?'zip':'png'}`, b); }
     if(kind==='qinfo-pdf') await saveFile(`${safeName(cur().name)}-إنفوجرافيك-ربعي.pdf`, await buildQPdf(cur()));
     if(kind==='qinfo-pptx') await saveFile(`${safeName(cur().name)}-عرض-ربعي.pptx`, await buildQPptx(cur()));
     if(kind==='qinfo-slides') await saveFile(`${safeName(cur().name)}-شرائح-ربعية.zip`, await buildQSlidesZip(cur()));
@@ -2089,7 +2091,7 @@ function normQ(r){
     if(!(q.y>2000&&q.n>=1&&q.n<=4)){ const yn=qYN(q.label); q.y=yn?yn.y:null; q.n=yn?yn.n:null; }
     delete q.recs;
     q.sum={count:num(q.sum?.count),sat:pct(q.sum?.sat),over:num(q.sum?.over),within:num(q.sum?.within)};
-    q.hos=(q.hos||[]).map(h=>{ fix(h); h.centers=(h.centers||[]).map(fix); return h; });
+    q.hos=(q.hos||[]).map(h=>{ fix(h); h.centers=(h.centers||[]).map(fix); h.cats=(h.cats||[]).map(fix); return h; });
     q.cats=(q.cats||[]).map(fix); });
   if(r.qs.every(q=>qOrd(q))) r.qs.sort((a,b)=>qOrd(a)-qOrd(b));
   const sh=r.qs.filter(q=>q.show), L=r.qs;
@@ -2117,8 +2119,8 @@ function renderQEdit(){
   renderQBody();
 }
 function qTable(kind, rows, hi){
-  const pre = kind==='cen' ? `cen:${hi}` : kind;
-  return `<div class="tbl-wrap"><table class="edit qt"><thead><tr><th></th><th>${kind==='hos'?'القطاع (المستشفى)':kind==='cen'?'المركز الصحي':'التصنيف الفرعي'}</th>${QF.map(f=>`<th>${QF_L[f]}</th>`).join('')}<th></th></tr></thead><tbody>${
+  const pre = kind==='cen' ? `cen:${hi}` : kind==='hc' ? `hc:${hi}` : kind;
+  return `<div class="tbl-wrap"><table class="edit qt"><thead><tr><th></th><th>${kind==='hos'?'القطاع (المستشفى)':kind==='cen'?'المركز الصحي':kind==='hc'?'تصنيف المستشفى':'التصنيف الفرعي'}</th>${QF.map(f=>`<th>${QF_L[f]}</th>`).join('')}<th></th></tr></thead><tbody>${
     rows.length?rows.map((r,i)=>`<tr><td class="idx">${i+1}</td><td class="nm"><input class="inp" data-qe="${pre}:${i}:name" value="${esc(r.name)}" placeholder="الاسم"></td>${QF.map(f=>`<td><input class="inp num" inputmode="decimal" data-qe="${pre}:${i}:${f}" value="${r[f]==null?'':(f==='sat'?String(+(r[f]*100).toFixed(2)):String(r[f]))}" placeholder="${kind==='hos'?(()=>{ const v=qHos(r)[f]; return v==null?'':(f==='sat'?(v*100).toFixed(1):Math.round(v)); })():''}"></td>`).join('')}<td><button type="button" class="rm" data-qdel="${pre}:${i}" aria-label="حذف الصف">${IC.x||'×'}</button></td></tr>`).join('')
     : `<tr><td colspan="7" class="empty-note">لا توجد صفوف بعد</td></tr>`}</tbody></table></div>`;
 }
@@ -2141,7 +2143,10 @@ function renderQBody(){
     <details class="qpart" open><summary><span class="qn">3</span>المراكز الصحية <small>تحت كل قطاع مراكزه</small></summary>
       ${q.hos.length?q.hos.map((h,hi)=>`<div class="qgrp"><div class="qgh"><b>${esc(h.name)||'قطاع بلا اسم'}</b><span class="mut">${h.centers.length} مركز</span></div>${qTable('cen',h.centers,hi)}<div class="qadd"><button type="button" class="btn sm" data-qadd="cen:${hi}">${IC.plus} مركز في ${esc(h.name)||'هذا القطاع'}</button></div></div>`).join(''):'<p class="hint">أضف القطاعات أولاً، ثم تظهر هنا خانة مراكز كل قطاع.</p>'}</details>
 
-    <details class="qpart" open><summary><span class="qn">4</span>التصانيف الفرعية <small>${q.cats.length} تصنيف · شاملة للربع</small></summary>
+    <details class="qpart" open><summary><span class="qn">4</span>تصانيف كل مستشفى <small>تظهر في صفحة المستشفى · أعلاها حسب عدد البلاغات</small></summary>
+      ${q.hos.length?q.hos.map((h,hi)=>`<div class="qgrp"><div class="qgh"><b>${esc(h.name)||'قطاع بلا اسم'}</b><span class="mut">${(h.cats||[]).length} تصنيف</span></div>${qTable('hc',h.cats||[],hi)}<div class="qadd"><button type="button" class="btn sm" data-qadd="hc:${hi}">${IC.plus} تصنيف في ${esc(h.name)||'هذا القطاع'}</button></div></div>`).join(''):'<p class="hint">أضف القطاعات أولاً.</p>'}</details>
+
+    <details class="qpart" open><summary><span class="qn">5</span>التصانيف الفرعية للربع <small>${q.cats.length} تصنيف · شاملة لكل القطاعات (صفحة الملخص)</small></summary>
       ${qTable('cat',q.cats)}<div class="qadd"><button type="button" class="btn sm" data-qadd="cat">${IC.plus} صف تصنيف</button></div></details>
 
     <div class="qnav">${prev?`<button type="button" class="btn" data-qtab="${qIdx-1}">→ ${esc(prev.label)}</button>`:'<span></span>'}
@@ -2160,7 +2165,8 @@ function qInput(t){
   if(d.qmeta!=null){ const f=d.qmeta; if(f==='show'){ q.show=t.checked; normQ(rep); save(); renderQEdit(); return true; } q[f]=t.value; if(f==='label'){ const st=document.querySelector(`[data-qtab="${qIdx}"] b`); if(st) st.textContent=`${qIdx+1}. ${t.value}`; normQ(rep); } save(); return true; }
   if(d.qsum!=null){ q.sum[d.qsum]=val(d.qsum,t.value); save(); return true; }
   if(d.qe!=null){ const p=d.qe.split(':'); let row,f;
-    if(p[0]==='cen'){ row=q.hos[+p[1]]?.centers[+p[2]]; f=p[3]; } else { row=(p[0]==='hos'?q.hos:q.cats)[+p[1]]; f=p[2]; }
+    if(p[0]==='cen'){ row=q.hos[+p[1]]?.centers[+p[2]]; f=p[3]; }
+    else if(p[0]==='hc'){ row=q.hos[+p[1]]?.cats?.[+p[2]]; f=p[3]; } else { row=(p[0]==='hos'?q.hos:q.cats)[+p[1]]; f=p[2]; }
     if(!row) return true; row[f]=val(f,t.value); save();
     if(p[0]==='hos'&&f==='name'){ const gh=document.querySelectorAll('.qgrp .qgh b')[+p[1]]; if(gh) gh.textContent=t.value||'قطاع بلا اسم'; }
     qRefreshHints(); return true; }
@@ -2175,12 +2181,13 @@ function qClick(b){
     if(k==='hos'){ q.hos.push({...qRow(),centers:[]}); save(); renderQBody(); focusLast('[data-qe^="hos:"][data-qe$=":name"]'); }
     if(k==='cat'){ q.cats.push(qRow()); save(); renderQBody(); focusLast('[data-qe^="cat:"][data-qe$=":name"]'); }
     if(k==='cen'){ q.hos[+hi].centers.push(qRow()); save(); renderQBody(); focusLast(`[data-qe^="cen:${hi}:"][data-qe$=":name"]`); }
+    if(k==='hc'){ const h=q.hos[+hi]; (h.cats||(h.cats=[])).push(qRow()); save(); renderQBody(); focusLast(`[data-qe^="hc:${hi}:"][data-qe$=":name"]`); }
     qRefreshHints(); return true; }
   if(d.qdel){ const p=d.qdel.split(':');
     if(p[0]==='hos'){ const h=q.hos[+p[1]]; const go=()=>{ q.hos.splice(+p[1],1); save(); renderQBody(); qRefreshHints(); };
       if(h&&h.centers.length) dialog({title:`حذف «${h.name||'القطاع'}»؟`, body:`سيُحذف معه ${h.centers.length} مركز من هذا الربع. يمكنك التراجع بزر «تراجع».`, actions:[{label:'حذف',cls:'primary',run:go},{label:'إلغاء'}]}); else go();
       return true; }
-    if(p[0]==='cen') q.hos[+p[1]].centers.splice(+p[2],1); else q.cats.splice(+p[1],1);
+    if(p[0]==='cen') q.hos[+p[1]].centers.splice(+p[2],1); else if(p[0]==='hc') q.hos[+p[1]].cats.splice(+p[2],1); else q.cats.splice(+p[1],1);
     save(); renderQBody(); qRefreshHints(); return true; }
   if(d.qact==='addq'){ const have=new Set(rep.qs.map(qOrd).filter(Boolean)); const yNow=new Date().getFullYear();
     const yrs=[]; for(let y=yNow-3;y<=yNow+1;y++) yrs.push(y);
@@ -2197,7 +2204,7 @@ function qClick(b){
     return true; }
   if(d.qact==='copyprev'){ const P=rep.qs[qIdx-1];
     const has=q.hos.length||q.cats.length;
-    const go=()=>{ q.hos=P.hos.map(h=>({...qRow(h.name),centers:h.centers.map(c=>qRow(c.name))})); q.cats=P.cats.map(c=>qRow(c.name)); save(); renderQBody(); qRefreshHints(); toast('نُسخت الأسماء، والأرقام فارغة للتعبئة'); };
+    const go=()=>{ q.hos=P.hos.map(h=>({...qRow(h.name),centers:h.centers.map(c=>qRow(c.name)),cats:(h.cats||[]).map(c=>qRow(c.name))})); q.cats=P.cats.map(c=>qRow(c.name)); save(); renderQBody(); qRefreshHints(); toast('نُسخت الأسماء، والأرقام فارغة للتعبئة'); };
     if(has) dialog({title:'استبدال صفوف هذا الربع؟', body:`سيُستبدل ما في «${q.label}» بأسماء «${P.label}» بخانات فارغة. يمكنك التراجع.`, actions:[{label:'استبدال',cls:'primary',run:go},{label:'إلغاء'}]}); else go();
     return true; }
   return false;
@@ -2206,10 +2213,10 @@ function qClick(b){
 /* ---------- comparisons ---------- */
 function qPrevMaps(rep, qi){
   const P=qi>0?rep.qs[qi-1]:null; if(!P) return null;
-  const H=new Map(), C=new Map(), K=new Map();
-  P.hos.forEach(h=>{ const hh=qHos(h); H.set(fold(h.name),hh); h.centers.forEach(c=>C.set(fold(h.name)+'|'+fold(c.name),c)); });
+  const H=new Map(), C=new Map(), K=new Map(), HK=new Map();
+  P.hos.forEach(h=>{ const hh=qHos(h); H.set(fold(h.name),hh); h.centers.forEach(c=>C.set(fold(h.name)+'|'+fold(c.name),c)); (h.cats||[]).forEach(c=>HK.set(fold(h.name)+'|'+fold(c.name),c)); });
   P.cats.forEach(c=>K.set(fold(c.name),c));
-  return {H,C,K,T:qTot(P),label:P.label};
+  return {H,C,K,HK,T:qTot(P),label:P.label};
 }
 function qChg(a,b,kind){ // kind: count | sat | over(نسبة أكثر من 24 ساعة)
   if(a==null||b==null) return '';
@@ -2258,7 +2265,8 @@ function qBuildInfo(rep,opt){
   const qh=first=>`<div class="qh" style="${cols}"><div style="text-align:start">${first}</div>${SHOW.map(qi=>`<div class="qhc" style="--c:${qcol(qi)}">${esc(rep.qs[qi].label)}${qi>0?` <small>مقارنةً بـ ${esc(QV(qi))}</small>`:''}</div>`).join('')}</div>`;
   const sHead=hk=>`<div class="sh" style="${cols}"><div class="sn">${esc(hk.name)}</div>${SHOW.map(qi=>{ const h=hosOf(qi,hk.k); if(!h) return '<div class="sq"><span class="mut">—</span></div>'; const x=qHos(h), p=PM(qi)?.H.get(hk.k);
       return `<div class="sq"><div><span>البلاغات</span><b>${fmtInt(x.count)}</b>${p?qChg(p.count,x.count,'count'):''}</div><div><span>الرضا</span><b>${bd(fp(x.sat))}</b>${p?qChg(p.sat,x.sat,'sat'):''}</div><div><span>الإغلاق</span>${stack(x,8).replace('class="stk"','class="stk" style="flex:1;height:8px"')}<em class="a">${fmtInt(x.over)}</em><em class="g">${fmtInt(x.within)}</em>${p?qChg(qShare(p),qShare(x),'over'):''}</div></div>`; }).join('')}</div>`;
-  const card=hk=>`<div class="card sc">${sHead(hk)}${grid(qi=>{ const h=hosOf(qi,hk.k); return h?h.centers.map(cc=>({...cc,name:qStrip(cc.name)})):[]; }, (qi,x)=>{ const pm=PM(qi); if(!pm) return null; const h=hosOf(qi,hk.k); const raw=h&&h.centers.find(cc=>qStrip(cc.name)===x.name); return raw?pm.C.get(hk.k+'|'+fold(raw.name)):null; }, Z.topC)}</div>`;
+  const cenGrid=hk=>grid(qi=>{ const h=hosOf(qi,hk.k); return h?h.centers.map(cc=>({...cc,name:qStrip(cc.name)})):[]; }, (qi,x)=>{ const pm=PM(qi); if(!pm) return null; const h=hosOf(qi,hk.k); const raw=h&&h.centers.find(cc=>qStrip(cc.name)===x.name); return raw?pm.C.get(hk.k+'|'+fold(raw.name)):null; }, Z.topC);
+  const card=hk=>`<div class="card sc">${sHead(hk)}${cenGrid(hk)}</div>`;
   const catCard=`<div class="card sc tc"><div class="sh" style="${cols}"><div class="sn">التصانيف</div><div style="grid-column:span ${N};font-size:13px;opacity:.85">شاملة لكل القطاعات · أعلى ${Z.topCat} في كل ربع</div></div>${grid(qi=>rep.qs[qi].cats, (qi,x)=>PM(qi)?.K.get(fold(x.name))||null, Z.topCat)}</div>`;
   const kpi=`<div class="kgrid" style="grid-template-columns:repeat(${N},1fr)">${SHOW.map(qi=>{ const T=qTot(rep.qs[qi]), p=PM(qi)?.T;
       return `<div class="card kq" style="--c:${qcol(qi)}"><div class="kqh">${esc(rep.qs[qi].label)}${qi>0?` <small>مقارنةً بـ ${esc(QV(qi))}</small>`:''}</div>
@@ -2268,9 +2276,38 @@ function qBuildInfo(rep,opt){
   const key=`<div class="keyb"><span><i style="background:#E39B2D"></i>أكثر من 24 ساعة (العدد الأول)</span><span><i style="background:#2E9E5B"></i>خلال 24 ساعة (العدد الثاني)</span><span>المثلث: كل ربع مقارنةً بالربع الذي قبله · الأحمر تراجع والأخضر تحسن · «ن» نقطة مئوية</span><span>ألوان الرضا: <span class="pl" style="background:#DDF0E3;color:#1F7A43">${t2}%+</span> <span class="pl" style="background:#E3EFFA;color:#1E6FA8">${t1}–${t2}</span> <span class="pl" style="background:#FFF1D9;color:#9A5B00">${t1-10}–${t1}</span> <span class="pl" style="background:#FBE1DF;color:#B3322D">&lt;${t1-10}</span></span></div>`;
   const sub=Z.sub || `${SHOW.map(i=>rep.qs[i].label).join(' · ')} · كل ربع مقارنةً بالربع الذي قبله`;
   const title=igTok(c.title||'{اسم_التقرير}',rep);
+  /* v17: رأس وذيل وتنويهات وعلامة مائية مثل «تنسيق التقرير» في القاعدة */
+  const HF=qHF(Z), LOGO_H=+Z.logoSize||72;
+  const ctx0={'الجهة':Z.org1||'','العنوان':title,'المعد':Z.by||'','المشرف':Z.sup||'','الفترة':SHOW.map(i=>rep.qs[i].label).join(' · '),'التاريخ':Z.date||igToday()};
+  const tx=(x,base)=>`font-size:${(base*(+x.sz||100)/100).toFixed(1)}px;${x.c?`color:${x.c};`:''}font-weight:${x.b?700:400};`;
+  const mkHd=(h1,h2,h3)=>{
+    const L1=qLogo(LOGO_H), L2=Z.logo2?`<img src="${Z.logo2}" alt="" style="height:${LOGO_H}px;width:auto;display:block">`:'', pos=Z.logoPos||'left';
+    const org=HF.org.on?`<div class="org" style="${tx(HF.org,15)}">${Z.org1?`<b style="font-size:1.13em;${HF.org.c?'color:inherit':''}">${esc(Z.org1)}</b>`:''}${Z.org2?`<span style="${HF.org.c?'color:inherit':''}">${esc(Z.org2)}</span><br>`:''}${esc(Z.org3||'')}</div>`:'';
+    const row=(a,b,end)=>`<div class="lg" style="justify-content:${end?'flex-end':'flex-start'};gap:14px;align-items:center">${a}${b}</div>`;
+    const R = pos==='right' ? row(L1,'',false) : row(pos==='left'?L2:'',org,false);
+    const Lf = pos==='right' ? row(org,L2,true) : row('',pos==='left'?L1:L2,true);
+    const T=`<div class="ttl">${pos==='center'&&L1?`<div style="display:flex;justify-content:center;margin-bottom:8px">${L1}</div>`:''}${HF.title.on&&h1?`<h1 style="${tx(HF.title,32)}">${esc(h1)}</h1>`:''}${HF.sub.on&&h2?`<h2 style="${tx(HF.sub,18)}">${esc(h2)}</h2>`:''}${h3?`<div class="hsub">${esc(h3)}</div>`:''}</div>`;
+    return `<div class="hd">${R}${T}${Lf}</div>`; };
+  const F=HF.ftr, band=F.st!=='line';
+  const mkFt=(i,n,hn)=>{ if(!F.on) return '';
+    const ctx={...ctx0,'الصفحة':n>1?`صفحة ${i} من ${n}`:'','المستشفى':hn||''};
+    const R=F.r?esc(qFill(F.r,ctx)):`${Z.by?`<small>إعداد</small>${esc(Z.by)}`:''}${Z.by&&Z.sup?' &nbsp;·&nbsp; ':''}${Z.sup?`<small>إشراف</small>${esc(Z.sup)}`:''}`;
+    const M=F.m?esc(qFill(F.m,ctx)):esc(ctx['الصفحة']);
+    const L=F.l?esc(qFill(F.l,ctx)):`<small>تاريخ الإعداد</small>${esc(ctx['التاريخ'])}`;
+    return `<div class="ft"><span>${R}</span><span>${M}</span><span>${L}</span></div>`; };
+  const notes=(Z.notes||[]).filter(x=>x&&x.on!==0&&String(x.t||'').trim());
+  const notesHtml=notes.length?`<div style="padding:14px 30px 0;display:grid;gap:8px">${notes.map(x=>`<div class="qnote"><b>تنويه:</b> ${esc(x.t)}</div>`).join('')}</div>`:'';
+  const hfCss=`
+  .qi .ft{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:14px 36px;${band?`background:${NAVY};color:${F.c||'#fff'};`:`background:transparent;color:${F.c||'#5E6E6B'};${F.line?`border-top:2px solid ${NAVY};`:''}margin:0 30px;padding:12px 6px;`}font-size:${(14*(+F.sz||100)/100).toFixed(1)}px}
+  .qi .ft>span{flex:1} .qi .ft>span:nth-child(2){text-align:center} .qi .ft>span:last-child{text-align:left}
+  .qi .ft small{opacity:.75;margin-inline-end:6px}
+  .qi .hsub{font-size:14px;color:#6B7B8A;margin-top:3px}
+  .qi .qnote{border:1.5px solid #E39B2D;background:#FFF8EC;border-radius:10px;padding:9px 14px;font-size:14px;color:#7A4B00;line-height:1.6}
+  .qi .qnote b{color:#B06D06}
+  ${Z.wm&&Z.wm.on&&Z.wmData?`.qi{background-image:url(${Z.wmData});background-repeat:repeat-y;background-position:center 300px;background-size:46% auto}`:''}`;
   const el=document.createElement('div');
   const css=`
-  .qi{width:${W}px;background:#F6F8FB;font-family:${qFontStack()};direction:rtl;color:#1C2B39;line-height:1.45}
+  .qi{width:${W}px;background-color:${c.bg||'#F6F8FB'};font-family:${qFontStack()};direction:rtl;color:${c.txt||'#1C2B39'};line-height:1.45}
   .qi .hd{display:grid;grid-template-columns:1fr 2.2fr 1fr;align-items:center;padding:26px 36px 18px;background:#fff;border-bottom:4px solid ${NAVY}}
   .qi .org{font-size:15px;line-height:1.6;color:${NAVY}} .qi .org b{display:block;font-size:17px} .qi .org span{color:${c.cTotal||'#1E88C8'}}
   .qi .ttl{text-align:center} .qi .ttl h1{margin:0;font-size:32px;color:${NAVY};font-weight:700} .qi .ttl h2{margin:4px 0 0;font-size:18px;color:${c.cTotal||'#1E88C8'};font-weight:500}
@@ -2309,40 +2346,104 @@ function qBuildInfo(rep,opt){
   .qi .none{color:#9AA6B2;font-size:12px}
   .qi .tc .it .nm{white-space:normal;line-height:1.25;font-size:12px}
   .qi .mut{color:#9AA6B2}
-  .qi .ft{display:flex;justify-content:space-between;align-items:center;background:${NAVY};color:#fff;padding:14px 36px;font-size:14px;gap:16px}
-  .qi .ft small{opacity:.75;margin-inline-end:6px}
+  `+hfCss+`
   `;
-  const hd=`<div class="hd"><div class="org">${c.org1?`<b>${esc(c.org1)}</b>`:''}${c.org2?`<span>${esc(c.org2)}</span><br>`:''}${esc(c.org3||'')}</div>
-     <div class="ttl"><h1>${esc(title)}</h1><h2>${esc(sub)}</h2></div><div class="lg">${qLogo(72)}</div></div>`;
+  const hd=mkHd(title,sub);
   if(opt&&opt.slides) return qSlidesEl(rep,{Z,NAVY,N,css,hd,kpi,key,qh,sHead,card,catCard,hosNames,title,sub,cT:c.cTotal||'#1E88C8'});
+  /* v16: صفحة لكل مستشفى — الملخص اختياري، ثم لكل مستشفى مؤشراته ومراكزه وأعلى تصانيفه */
+  if(Z.layout==='P'){
+    const cT=c.cTotal||'#1E88C8', HC=+Z.hcTop||5;
+    const hdH=hk=>mkHd(hk.name,title,sub);
+    const hkpi=hk=>`<div class="kgrid" style="grid-template-columns:repeat(${N},1fr)">${SHOW.map(qi=>{ const h=hosOf(qi,hk.k), x=h?qHos(h):null, p=PM(qi)?.H.get(hk.k);
+      const head=`<div class="kqh">${esc(rep.qs[qi].label)}${qi>0?` <small>مقارنةً بـ ${esc(QV(qi))}</small>`:''}</div>`;
+      if(!x) return `<div class="card kq" style="--c:${qcol(qi)}">${head}<div class="none">لا توجد بيانات لهذا الربع</div></div>`;
+      return `<div class="card kq" style="--c:${qcol(qi)}">${head}
+        <div class="kk"><span>البلاغات</span><b>${fmtInt(x.count)}</b>${p?qChg(p.count,x.count,'count'):''}</div>
+        <div class="kk"><span>متوسط الرضا</span><b>${bd(fp(x.sat,1))}</b>${p?qChg(p.sat,x.sat,'sat'):''}</div>
+        <div class="kk"><span>مدة الإغلاق</span><div style="flex:1">${stack(x,12)}<div class="cln" style="font-size:12.5px"><span class="a">أكثر من 24 ساعة ${fmtInt(x.over)}</span><span class="g">خلال 24 ساعة ${fmtInt(x.within)}</span></div></div>${p?qChg(qShare(p),qShare(x),'over'):''}</div></div>`; }).join('')}</div>`;
+    const catTable=hk=>{
+      const lw=[...SHOW].reverse().find(qi=>(hosOf(qi,hk.k)?.cats||[]).some(x=>x.count!=null||x.name));
+      if(lw==null) return {t:'',html:`<div class="none" style="padding:14px 4px">لا توجد تصانيف لهذا المستشفى بعد. صدّرها من القاعدة (الإصدار 162 أو أحدث) أو أضفها في صفحة الإدخال، الجزء 4.</div>`};
+      const names=hosOf(lw,hk.k).cats.filter(x=>String(x.name||'').trim()).slice().sort((a,b)=>(b.count??-1)-(a.count??-1)).slice(0,HC).map(x=>x.name);
+      const cell=(qi,nm)=>{ const h=hosOf(qi,hk.k), x=h&&(h.cats||[]).find(y=>fold(y.name)===fold(nm));
+        if(!x) return '<td class="sl mut">—</td><td class="mut">—</td><td class="mut">—</td>';
+        const p=PM(qi)?.HK.get(hk.k+'|'+fold(nm));
+        return `<td class="sl"><span class="n">${fmtInt(x.count)}</span>${p?qChg(p.count,x.count,'count'):''}</td>
+          <td><span class="sp" style="background:${heat(x.sat)};color:${heatT(x.sat)}">${bd(fp(x.sat))}</span>${p&&p.sat!=null&&x.sat!=null?`<div style="margin-top:3px">${qChg(p.sat,x.sat,'sat')}</div>`:''}</td>
+          <td><div class="clc">${stack(x,8)}${nums(x)}</div>${p?`<div style="margin-top:3px">${qChg(qShare(p),qShare(x),'over')}</div>`:''}</td>`; };
+      return {t:rep.qs[lw].label, html:`<table class="ctb"><thead><tr><th rowspan="2" class="nmh">التصنيف</th>${SHOW.map(qi=>`<th colspan="3" class="q sl" style="--c:${qcol(qi)}">${esc(rep.qs[qi].label)}</th>`).join('')}</tr>
+        <tr>${SHOW.map(()=>'<th class="sl">البلاغات</th><th>الرضا</th><th>الإغلاق</th>').join('')}</tr></thead>
+        <tbody>${names.map((nm,i)=>`<tr><td class="nm"><div class="nmw"><span class="rk">${i+1}</span><span>${esc(nm)}</span></div></td>${SHOW.map(qi=>cell(qi,nm)).join('')}</tr>`).join('')}</tbody></table>`}; };
+    const hosPage=hk=>{ const ct=catTable(hk);
+      return `${hdH(hk)}
+      <div class="psec"><div class="qst">مؤشرات المستشفى</div>${hkpi(hk)}</div>
+      <div class="psec"><div class="qst">المراكز <small>أعلى ${Z.topC} في كل ربع، وكل ربع يرتب مراكزه</small></div><div class="card sc">${qh('')}${cenGrid(hk)}</div></div>
+      <div class="psec"><div class="qst">أعلى ${HC} تصانيف حسب عدد البلاغات <small>${ct.t?`مرتبة حسب ${esc(ct.t)}، ولكل ربع: البلاغات والرضا والإغلاق`:''}</small></div><div class="card" style="padding:6px 16px 8px">${ct.html}</div></div>
+      <div class="psec" style="padding-bottom:22px">${key}</div>`; };
+    const sumPage=`${hd}<div class="psec">${kpi}</div><div style="padding:12px 30px 0">${key}</div>${notesHtml}
+      <div class="psec"><div class="qst">المستشفيات <small>مرتبة حسب بلاغات آخر ربع · التفاصيل في صفحة كل مستشفى</small></div><div class="card" style="padding:8px 14px;margin-bottom:10px">${qh('المستشفى')}</div><div class="card sc">${hosNames.map(sHead).join('')}</div></div>
+      <div class="psec" style="padding-bottom:22px">${catCard}</div>`;
+    const pages=[]; if(Z.pSum!==false) pages.push({n:'الملخص',h:sumPage}); hosNames.forEach(hk=>pages.push({n:hk.name,h:hosPage(hk)}));
+    if(!pages.length) pages.push({n:'الملخص',h:sumPage});
+    if(notesHtml&&Z.pSum===false&&pages[0]) pages[0].h=pages[0].h.replace(/<div class="psec" style="padding-bottom:22px">/, m=>notesHtml+m);
+    const foot=(i,n)=>mkFt(i,n,pages[i-1].n==='الملخص'?'':pages[i-1].n);
+    el.innerHTML=`<style>${css}
+    .qi .psec{padding:18px 30px 0}
+    .qi .qst{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:700;color:${NAVY};margin:0 0 10px}
+    .qi .qst:before{content:"";width:5px;height:22px;border-radius:3px;background:${cT}}
+    .qi .qst small{font-size:12.5px;color:#6B7B8A;font-weight:400}
+    .qi .ctb{width:100%;border-collapse:collapse;font-size:13.5px}
+    .qi .ctb th{font-size:12.5px;color:#6B7B8A;font-weight:600;padding:7px 6px;border-bottom:1px solid #E3E9EF;text-align:center}
+    .qi .ctb th.q{font-size:14.5px;color:${NAVY};box-shadow:inset 0 -3px 0 var(--c)}
+    .qi .ctb th.nmh{text-align:start;width:27%}
+    .qi .ctb td{padding:9px 6px;border-bottom:1px solid #EDF1F5;text-align:center;vertical-align:middle}
+    .qi .ctb tbody tr:last-child td{border-bottom:0}
+    .qi .ctb td.nm{text-align:start;color:${NAVY};font-weight:600;line-height:1.35}
+    .qi .ctb .nmw{display:flex;gap:8px;align-items:center}
+    .qi .ctb .sl{border-inline-start:2px solid #DCE4EC}
+    .qi .ctb .n{font-weight:700;color:${NAVY};font-size:15.5px;display:block;margin-bottom:2px}
+    .qi .ctb .sp{display:inline-block;border-radius:6px;padding:2px 8px;font-weight:700;font-size:13.5px}
+    .qi .ctb .clc{display:grid;gap:3px;width:104px;margin:auto} .qi .ctb .clc .cln{font-size:12px;font-weight:600}
+    .qi .ctb .rk{flex:none}
+    </style>${pages.map((p,i)=>`<div class="qi qp" data-page="${esc(p.n)}">${p.h}${foot(i+1,pages.length)}</div>`).join('<div class="qgap" style="height:40px;background:#fff"></div>')}`;
+    return el;
+  }
   el.innerHTML=`<style>${css}</style>
   <div class="qi">${hd}
    <div style="padding:18px 30px 0">${kpi}</div>
-   <div style="padding:12px 30px 0">${key}</div>
+   <div style="padding:12px 30px 0">${key}</div>${notesHtml}
    ${land?`<div style="padding:8px 30px 0;display:grid;grid-template-columns:1fr 1fr;gap:14px"><div class="card" style="padding:8px 14px">${qh('المستشفى')}</div><div class="card" style="padding:8px 14px">${qh('المستشفى')}</div></div>`
          :`<div style="padding:8px 30px 0"><div class="card" style="padding:8px 14px">${qh('المستشفى')}</div></div>`}
    ${land?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:12px 30px 22px;align-items:start">${[...hosNames.map(card),catCard].join('')}</div>`
          :`<div style="display:grid;gap:10px;padding:10px 30px 0">${hosNames.map(card).join('')}</div><div style="padding:12px 30px 22px">${catCard}</div>`}
-   <div class="ft"><span>${c.by?`<small>إعداد</small>${esc(c.by)}`:''}${c.by&&c.sup?' &nbsp;·&nbsp; ':''}${c.sup?`<small>إشراف</small>${esc(c.sup)}`:''}</span><span><small>تاريخ الإعداد</small>${esc(c.date||igToday())}</span></div></div>`;
+   ${mkFt(1,1)}</div>`;
   return el;
 }
 /* ---------- v10: the quarterly infographic has its own settings, separate from the weekly/hospital one ---------- */
-const QI_DEF={v:1,layout:'A',topC:3,topCat:5,clSort:'count',
+const Q_HF_DEF={org:{on:1,sz:100,c:'',b:0},title:{on:1,sz:100,c:'',b:1},sub:{on:1,sz:100,c:'',b:0},ftr:{on:1,r:'',m:'',l:'',sz:100,c:'',st:'band',line:1}};
+const qHF=Z=>{ const h=(Z&&Z.hf)||{}, o={}; Object.keys(Q_HF_DEF).forEach(k=>o[k]={...Q_HF_DEF[k],...(h[k]||{})}); return o; };
+const Q_TAGS=['الجهة','العنوان','المعد','المشرف','الفترة','التاريخ','الصفحة','المستشفى'];
+const qFill=(t,ctx)=>String(t||'').replace(/\{([^{}]+)\}/g,(m,k)=>k in ctx?ctx[k]:m).replace(/(\s*[·\-|،]\s*){2,}/g,' · ').replace(/^\s*[·\-|،]\s*|\s*[·\-|،]\s*$/g,'').trim();
+const Q_THEMES={navy:{l:'كحلي (الافتراضي)',navy:'#1B3A5C',cTotal:'#1E88C8',bg:'#F6F8FB'},green:{l:'أخضر صحي',navy:'#0B6B5D',cTotal:'#1D8A78',bg:'#F2F8F6'},teal:{l:'تركوازي',navy:'#0E6E86',cTotal:'#1A8FAA',bg:'#F1F7F9'},
+  maroon:{l:'عنابي',navy:'#7A1F2B',cTotal:'#A33445',bg:'#FBF4F5'},gray:{l:'رمادي',navy:'#3F4A55',cTotal:'#6B7884',bg:'#F5F6F7'},bw:{l:'أبيض وأسود للطباعة',navy:'#222222',cTotal:'#555555',bg:'#FFFFFF'}};
+const QI_DEF={v:1,pv:1,layout:'P',pSum:true,hcTop:5,theme:'navy',bg:'#F6F8FB',txt:'#1C2B39',hf:JSON.parse(JSON.stringify(Q_HF_DEF)),logoSize:72,logoPos:'left',logo2:'',notes:[],wm:{on:0,src:'logo',image:'',op:0.07},wmData:'',topC:3,topCat:5,clSort:'count',
   title:'التقرير الربعي لبلاغات 937',sub:'',org1:'تجمع مكة المكرمة الصحي',org2:'الرعاية الصحية الأولية',org3:'تجربة المستفيد',
   by:'',sup:'',date:'',logo:'',font:'plex',fsize:100,navy:'#1B3A5C',cTotal:'#1E88C8',t1:80,t2:90,strip:true,q:3,paper:'a3',hosTop:0,hosOff:[],
   sOwn:false,sTitle:'',sSub:'',sOrg1:'',sOrg2:'',sOrg3:'',sDate:'',sFoot:'',sBy:true,
   sFs:100,sSum:5,sPer:1,sCover:true,sSummary:true,sHos:true,sCats:true};
 function fixQinfo(s){
   if(!s.qinfo || s.qinfo.v!==1){ const I=s.info||{}, old=(I.q)||{};
-    s.qinfo={...QI_DEF, layout:old.layout||'A', topC:old.topC||3, topCat:old.topCat||5, clSort:old.clSort||'count', sub:old.sub||'',
+    s.qinfo={...QI_DEF, layout:'P', topC:old.topC||3, topCat:old.topCat||5, clSort:old.clSort||'count', sub:old.sub||'',
       org1:I.org1??QI_DEF.org1, org2:I.org2??QI_DEF.org2, org3:I.org3??QI_DEF.org3, by:I.by||'', sup:I.sup||'', logo:I.logo||'', font:I.font||'plex', fsize:I.fsize||100,
       navy:I.navy||QI_DEF.navy, cTotal:I.cTotal||QI_DEF.cTotal, t1:I.t1||80, t2:I.t2||90, strip:I.strip!==false }; }
+  if(!s.qinfo.pv){ s.qinfo.pv=1; s.qinfo.layout='P'; } // v16: صفحة لكل مستشفى صارت الشكل المعتمد
   s.qinfo={...QI_DEF,...s.qinfo}; if(!Array.isArray(s.qinfo.hosOff)) s.qinfo.hosOff=[];
+  s.qinfo.hf=qHF(s.qinfo); s.qinfo.wm={...QI_DEF.wm,...(s.qinfo.wm||{})}; if(!Array.isArray(s.qinfo.notes)) s.qinfo.notes=[];
   return s;
 }
 const qCfg=()=>state.qinfo||QI_DEF;
 const QI_W={A:1754,B:2480,C:1754};
-const qiWidth=(n,layout)=>{ n=Math.max(1,n); return layout==='B' ? Math.max(2480, 140*2+n*2*370) : Math.max(1754, 170+n*530); };
+const qiWidth=(n,layout)=>{ n=Math.max(1,n); if(layout==='P') return Math.max(1754, 300+n*500); return layout==='B' ? Math.max(2480, 140*2+n*2*370) : Math.max(1754, 170+n*530); };
 const qShownN=rep=>rep&&rep.qs?rep.qs.filter(q=>q.show).length:3;
 const qFontStack=()=>`"${(RFONTS[qCfg().font]||RFONTS.plex).n}","IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif`;
 const qLogo=h=>qCfg().logo?`<img src="${qCfg().logo}" alt="" style="height:${h}px;width:auto;display:block">`:'';
@@ -2357,7 +2458,10 @@ function qiPanelBody(){
   const opt=(arr,v)=>arr.map(([a,t])=>`<option value="${a}" ${String(v)===String(a)?'selected':''}>${t}</option>`).join('');
   const fld=(k,l,ph='')=>`<div><label class="fld-lbl" for="qi_${k}">${l}</label><input class="inp" id="qi_${k}" data-qi="${k}" value="${esc(Z[k])}" placeholder="${esc(ph)}"></div>`;
   const tog=(k,l)=>`<label><input type="checkbox" class="sw" data-qi="${k}" ${Z[k]?'checked':''}>${l}</label>`;
-  if(qiTab==='tpl') return `<div class="tplpick">${[['A','طولي','المستشفيات تحت بعضها ثم التصانيف'],['B','عرضي بعمودين','المستشفيات في عمودين، والأقرب لصفحة واحدة'],['C','طولي برؤوس داكنة','رأس كحلي لكل مستشفى، وخلفية لكل مؤشر']].map(([k,t,d])=>`<label><input type="radio" name="qiL" data-qi="layout" value="${k}" ${Z.layout===k?'checked':''}><b>${t}</b><small>${d}</small></label>`).join('')}</div>
+  if(qiTab==='tpl') return `<div class="tplpick">${[['P','صفحة لكل مستشفى','الملخص اختياري، ثم صفحة لكل مستشفى: مؤشراته ومراكزه وأعلى تصانيفه'],['A','طولي','المستشفيات تحت بعضها ثم التصانيف'],['B','عرضي بعمودين','المستشفيات في عمودين، والأقرب لصفحة واحدة'],['C','طولي برؤوس داكنة','رأس كحلي لكل مستشفى، وخلفية لكل مؤشر']].map(([k,t,d])=>`<label><input type="radio" name="qiL" data-qi="layout" value="${k}" ${Z.layout===k?'checked':''}><b>${t}</b><small>${d}</small></label>`).join('')}</div>
+     ${Z.layout==='P'?`<div class="togs">${tog('pSum','عرض صفحة الملخص في البداية')}</div>
+     <p class="hint" style="margin:0">صفحة الملخص فيها بطاقات الأرباع، وسطر لكل مستشفى، والتصانيف العامة للربع. ألغها لتبدأ مباشرة بصفحات المستشفيات.</p>
+     <div><label class="fld-lbl" for="qiHC">تصانيف كل مستشفى</label><select class="inp" id="qiHC" data-qi="hcTop">${opt([[3,'أعلى 3'],[5,'أعلى 5'],[8,'أعلى 8']],Z.hcTop)}</select></div>`:''}
      <p class="hint" style="margin:0">الأرباع الظاهرة تُحدَّد من صفحة الإدخال بمفتاح «يظهر في الإنفوجرافيك» لكل ربع.</p>`;
   if(qiTab==='secs'){ const rep=cur(), seen=new Map(); (rep.qs||[]).forEach(q=>q.hos.forEach(h=>{ const k=fold(h.name); if(k&&!seen.has(k)) seen.set(k,h.name); }));
     const last=(rep.qs||[]).filter(q=>q.show).slice(-1)[0]; const cnt=k=>{ const h=last&&last.hos.find(x=>fold(x.name)===k); return h?qHos(h).count:null; };
@@ -2371,17 +2475,48 @@ function qiPanelBody(){
      <div><label class="fld-lbl" for="qiS">ترتيب مدة الإغلاق</label><select class="inp" id="qiS" data-qi="clSort">${opt([['count','عدد البلاغات من الأعلى'],['over','عدد «أكثر من 24 ساعة» من الأعلى']],Z.clSort)}</select></div>
      <p class="hint" style="margin:0">البلاغات من الأعلى إلى الأدنى، والرضا من الأقل إلى الأعلى. والمستشفيات مرتبة حسب بلاغات آخر ربع ظاهر.</p>
      <div class="togs">${tog('strip','حذف «مركز صحي» من بداية أسماء المراكز')}</div>`; }
-  if(qiTab==='head') return `${fld('title','العنوان الرئيسي','التقرير الربعي لبلاغات 937')}
-     ${fld('sub','السطر تحت العنوان','تلقائي: أسماء الأرباع الظاهرة')}
-     <p class="hint" style="margin:0">يمكن استخدام {اسم_التقرير} في العنوان ليُكتب اسم التقرير.</p>
-     ${fld('org1','سطر الجهة 1')}${fld('org2','سطر الجهة 2')}${fld('org3','سطر الجهة 3')}
+  if(qiTab==='head'){ const H=qHF(Z);
+    const sz=k=>`<select class="inp" data-qhf="${k}.sz">${opt([[85,'صغير'],[100,'عادي'],[120,'كبير'],[145,'كبير جداً']],H[k].sz)}</select>`;
+    const clr=(k,def)=>`<input type="color" data-qhf="${k}.c" value="${esc(H[k].c||def)}" title="اللون"><button type="button" class="btn sm ghost" data-qhfc="${k}" title="اللون الافتراضي">↺</button>`;
+    const sty=(k,def,bold=true)=>`<div class="hfrow"><span class="mut">الحجم</span>${sz(k)}<span class="mut">اللون</span>${clr(k,def)}${bold?`<label><input type="checkbox" data-qhf="${k}.b" ${H[k].b?'checked':''}> عريض</label>`:''}</div>`;
+    const on=(k,l)=>`<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-qhf="${k}.on" ${H[k].on?'checked':''}><b>${l}</b></label>`;
+    return `<div class="hfbox">${on('title','العنوان')}${fld('title','نص العنوان','التقرير الربعي لبلاغات 937')}${sty('title',Z.navy||'#1B3A5C')}
+       <span class="hint" style="margin:0">في صفحة المستشفى يكون العنوان اسم المستشفى، ويأتي هذا النص تحته.</span></div>
+     <div class="hfbox">${on('sub','السطر تحت العنوان')}${fld('sub','نص السطر','تلقائي: أسماء الأرباع الظاهرة')}${sty('sub',Z.cTotal||'#1E88C8')}</div>
+     <div class="hfbox">${on('org','أسطر الجهة')}${fld('org1','السطر 1')}${fld('org2','السطر 2')}${fld('org3','السطر 3')}${sty('org',Z.navy||'#1B3A5C')}</div>
      <div class="two">${fld('by','إعداد')}${fld('sup','إشراف')}</div>
      ${fld('date','تاريخ الإعداد','فارغ = تاريخ اليوم: '+igToday())}
-     <div><span class="fld-lbl">الشعار</span><div class="logo-row">${Z.logo?`<img src="${Z.logo}" alt="الشعار">`:'<span class="mut" style="font-size:12.5px">لا يوجد شعار</span>'}<label class="btn sm">${Z.logo?'تغيير':'رفع صورة'}<input type="file" id="qiLogo" accept="image/*" hidden></label>${Z.logo?'<button type="button" class="btn sm ghost danger" data-qiact="logo-rm">إزالة</button>':''}</div></div>`;
-  if(qiTab==='look') return `<div><label class="fld-lbl" for="qi_font">الخط</label><select class="inp" id="qi_font" data-qi="font">${opt(Object.entries(RFONTS).map(([k,f])=>[k,f.l]),Z.font)}</select></div>
+     <div class="hfbox">${on('ftr','ذيل الصفحة (أسفل كل صفحة)')}
+       ${H.ftr.on?`<input class="inp" data-qhf="ftr.r" value="${esc(H.ftr.r)}" placeholder="النص الأيمن · الافتراضي: إعداد · إشراف">
+       <input class="inp" data-qhf="ftr.m" value="${esc(H.ftr.m)}" placeholder="النص الأوسط · الافتراضي: صفحة 1 من 6">
+       <input class="inp" data-qhf="ftr.l" value="${esc(H.ftr.l)}" placeholder="النص الأيسر · الافتراضي: تاريخ الإعداد">
+       <div class="hfrow"><span class="mut">الشكل</span><select class="inp" data-qhf="ftr.st">${opt([['band','شريط ملوّن'],['line','نص على خلفية الصفحة']],H.ftr.st)}</select>
+         ${H.ftr.st==='line'?`<label><input type="checkbox" data-qhf="ftr.line" ${H.ftr.line?'checked':''}> خط فاصل فوق الذيل</label>`:''}</div>
+       ${sty('ftr',H.ftr.st==='line'?'#5E6E6B':'#FFFFFF',false)}`:''}</div>
+     <p class="hint" style="margin:0">اترك النص فارغاً ليبقى الافتراضي. يمكنك استخدام: ${Q_TAGS.map(t=>`<code>{${t}}</code>`).join(' ')} ليُستبدل تلقائياً، مثل «{المستشفى} · {الصفحة}». و{اسم_التقرير} في العنوان.</p>
+     <div><button type="button" class="btn sm ghost" data-qiact="hf-reset">إرجاع الرأس والذيل للافتراضي</button></div>`; }
+  if(qiTab==='look') return `<div><span class="fld-lbl">قالب الألوان</span><div class="qsw">${Object.entries(Q_THEMES).map(([k,t])=>`<button type="button" data-qitheme="${k}" aria-pressed="${Z.theme===k}"><i><b style="background:${t.navy}"></b><b style="background:${t.cTotal}"></b><b style="background:${t.bg};border:1px solid #DDE3EA"></b></i>${t.l}</button>`).join('')}<button type="button" data-qitheme="custom" aria-pressed="${Z.theme==='custom'}"><i><b style="background:${esc(Z.navy)}"></b><b style="background:${esc(Z.cTotal)}"></b><b style="background:${esc(Z.bg||'#F6F8FB')};border:1px solid #DDE3EA"></b></i>مخصص</button></div></div>
+     <div class="colors"><label><input type="color" data-qi="navy" value="${esc(Z.navy)}">الرأس والشريط السفلي</label><label><input type="color" data-qi="cTotal" value="${esc(Z.cTotal)}">العناوين الفرعية</label><label><input type="color" data-qi="bg" value="${esc(Z.bg||'#F6F8FB')}">خلفية الصفحة</label><label><input type="color" data-qi="txt" value="${esc(Z.txt||'#1C2B39')}">لون النص</label></div>
+     <span class="hint" style="margin:0">تغيير أي لون يحوّل القالب إلى «مخصص».</span>
+     <div><label class="fld-lbl" for="qi_font">الخط</label><select class="inp" id="qi_font" data-qi="font">${opt(Object.entries(RFONTS).map(([k,f])=>[k,f.l]),Z.font)}</select></div>
      <div><span class="fld-lbl">حجم الخط</span><div class="chips">${RF_SIZES.map(([v,l])=>`<button type="button" class="chip" data-qifs="${v}" aria-pressed="${+Z.fsize===v}">${l}</button>`).join('')}</div></div>
-     <div class="colors"><label><input type="color" data-qi="navy" value="${esc(Z.navy)}">اللون الداكن</label><label><input type="color" data-qi="cTotal" value="${esc(Z.cTotal)}">لون العناوين</label></div>
      <div class="two"><div><label class="fld-lbl" for="qi_t1">رضا أزرق من (%)</label><input class="inp" type="number" min="0" max="100" id="qi_t1" data-qi="t1" value="${Z.t1}"></div><div><label class="fld-lbl" for="qi_t2">رضا أخضر من (%)</label><input class="inp" type="number" min="0" max="100" id="qi_t2" data-qi="t2" value="${Z.t2}"></div></div>`;
+  if(qiTab==='logo'){ const W=Z.wm||{};
+    const seg=(k,arr)=>`<div class="chips">${arr.map(([v,l])=>`<button type="button" class="chip" data-${typeof v==='number'?'qiset':'qistr'}="${k}:${v}" aria-pressed="${String(Z[k])===String(v)}">${l}</button>`).join('')}</div>`;
+    return `<div><span class="fld-lbl">الشعار</span><div class="logo-row">${Z.logo?`<img src="${Z.logo}" alt="الشعار">`:'<span class="mut" style="font-size:12.5px">لا يوجد شعار</span>'}<label class="btn sm">${Z.logo?'تغيير':'رفع صورة'}<input type="file" id="qiLogo" accept="image/*" hidden></label>${Z.logo?'<button type="button" class="btn sm ghost danger" data-qiact="logo-rm">إزالة</button>':''}</div></div>
+     <div><span class="fld-lbl">حجم الشعار</span>${seg('logoSize',[[48,'صغير'],[72,'متوسط'],[96,'كبير'],[124,'كبير جداً']])}</div>
+     <div><span class="fld-lbl">مكان الشعار</span>${seg('logoPos',[['right','يمين'],['center','وسط فوق العنوان'],['left','يسار']])}</div>
+     <div><span class="fld-lbl">شعار ثانٍ</span><div class="logo-row">${Z.logo2?`<img src="${Z.logo2}" alt="الشعار الثاني">`:'<span class="mut" style="font-size:12.5px">بدون</span>'}<label class="btn sm">${Z.logo2?'تغيير':'اختيار صورة'}<input type="file" id="qiLogo2" accept="image/*" hidden></label>${Z.logo2?'<button type="button" class="btn sm ghost danger" data-qiact="logo2-rm">حذف</button>':''}</div>
+       <span class="hint" style="margin:0">مثل شعار الوزارة، ويظهر في الجهة المقابلة للشعار.</span></div>
+     <hr style="border:0;border-top:1px solid var(--line,#E3E9EF);margin:2px 0">
+     <div class="togs"><label><input type="checkbox" class="sw" data-qwm="on" ${W.on?'checked':''}>العلامة المائية: صورة باهتة في خلفية كل صفحة</label></div>
+     ${W.on?`<div><span class="fld-lbl">الصورة</span><div class="chips"><button type="button" class="chip" data-qwmset="src:logo" aria-pressed="${W.src!=='image'}">الشعار</button><button type="button" class="chip" data-qwmset="src:image" aria-pressed="${W.src==='image'}">صورة أخرى</button></div>
+       ${W.src==='image'?`<div class="logo-row" style="margin-top:6px">${W.image?`<img src="${W.image}" alt="">`:''}<label class="btn sm">${W.image?'تغيير':'اختيار صورة'}<input type="file" id="qiWmImg" accept="image/*" hidden></label></div>`:(Z.logo?'':'<span class="hint" style="margin:0">ارفع الشعار أولاً.</span>')}</div>
+       <div><span class="fld-lbl">الوضوح</span><div class="chips">${[[0.05,'خفيفة'],[0.08,'متوسطة'],[0.13,'واضحة']].map(([v,l])=>`<button type="button" class="chip" data-qwmset="op:${v}" aria-pressed="${+W.op===v}">${l}</button>`).join('')}</div></div>`:''}`; }
+  if(qiTab==='notes'){ const N=Z.notes||[];
+    return `${N.map((x,i)=>`<div style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" data-qnton="${i}" ${x.on!==0?'checked':''} title="إظهار" style="margin-top:10px"><textarea class="inp" data-qnt="${i}" rows="2" style="flex:1" placeholder="نص التنويه">${esc(x.t||'')}</textarea><button type="button" class="btn sm ghost" data-qnotedel="${i}">حذف</button></div>`).join('')||'<p class="hint" style="margin:0">لا توجد تنويهات بعد.</p>'}
+     <div><button type="button" class="btn sm" data-qiact="note-add">+ إضافة تنويه</button></div>
+     <p class="hint" style="margin:0">تظهر في الصفحة الأولى تحت شرح الألوان، بإطار برتقالي يبدأ بكلمة «تنويه:»، في المعاينة والصورة والـPDF. ألغِ علامة التنويه لإخفائه دون حذفه.</p>`; }
   if(qiTab==='sl'){ const ph=(k,d)=>fld(k[0],k[1],d||'');
     const chips=(k,arr)=>`<div class="chips">${arr.map(([v,l])=>`<button type="button" class="chip" data-qiset="${k}:${v}" aria-pressed="${+Z[k]===v}">${l}</button>`).join('')}</div>`;
     return `<div><span class="fld-lbl">حجم خط الشرائح</span>${chips('sFs',[[75,'صغير جداً'],[85,'صغير'],[100,'متوسط'],[115,'كبير']])}</div>
@@ -2401,8 +2536,8 @@ function qiPanelBody(){
      <p class="hint" style="margin:0">الأسماء نفسها تُكتب في تبويب «العنوان والترويسة». الشعار والخط والألوان مشتركة مع الإنفوجرافيك.</p>
      <div class="explist"><button type="button" class="btn" data-pexp="qinfo-pptx"><b>تصدير عرض PowerPoint</b><small>بالترويسة الظاهرة في المعاينة</small></button></div>`; }
   if(qiTab==='exp') return `<div class="explist">
-      <button type="button" class="btn" data-pexp="qinfo-png"><b>صورة PNG واضحة</b><small>بنفس شكل المعاينة وبالوضوح المختار أدناه</small></button>
-      <button type="button" class="btn" data-pexp="qinfo-pdf"><b>PDF واضح</b><small>صفحة واحدة بحجم الورقة المختار، جاهزة للطباعة والإرسال</small></button>
+      <button type="button" class="btn" data-pexp="qinfo-png"><b>صورة PNG واضحة</b><small>بنفس شكل المعاينة وبالوضوح المختار أدناه. مع «صفحة لكل مستشفى» تصلك صورة لكل صفحة في ملف مضغوط</small></button>
+      <button type="button" class="btn" data-pexp="qinfo-pdf"><b>PDF واضح</b><small>بحجم الورقة المختار، وكل مستشفى في صفحة مستقلة عند اختيار «صفحة لكل مستشفى»</small></button>
       <button type="button" class="btn" data-pexp="qinfo-pptx"><b>عرض PowerPoint</b><small>شرائح عرضية 16:9: الملخص، ثم القطاعات، ثم كل مستشفى في شريحة، ثم التصانيف. الخط كبير وواضح عند العرض</small></button>
       <button type="button" class="btn" data-pexp="qinfo-slides"><b>صور الشرائح</b><small>نفس الشرائح كصور PNG في ملف مضغوط، لإدراجها في عرضك أو Google Slides</small></button>
       <button type="button" class="btn" data-pexp="qinfo-xlsx"><b>Excel</b><small>كل أرقام الأرباع، ويمكن تعديله وإعادة استيراده</small></button></div>
@@ -2414,7 +2549,7 @@ function qiPanelBody(){
 function renderQInfoPage(){
   const b=document.getElementById('body'), rep=cur(), Z=qCfg();
   if(qSnap==null) qSnap=JSON.stringify(state.qinfo);
-  const tabs=[['tpl','الشكل'],['secs','الترتيب والعدد'],['head','العنوان والترويسة'],['look','الخط والألوان'],['sl','العرض (PowerPoint)'],['exp','التصدير']];
+  const tabs=[['tpl','الشكل'],['secs','الترتيب والعدد'],['head','الرأس والذيل'],['look','الألوان والخط'],['logo','الشعار والخلفية'],['notes','التنويهات'],['sl','العرض (PowerPoint)'],['exp','التصدير']];
   b.innerHTML=`<div class="info-lay ig3"><section class="card igp"><div class="igp-h"><h3>إعداد الإنفوجرافيك الربعي</h3><span class="hint" id="qiHint"></span></div>
       <p class="hint" style="margin:0 14px 6px">إعدادات مستقلة عن إنفوجرافيك التقارير الأسبوعية وتقارير المستشفيات.</p>
       <div class="ptabs2" role="tablist">${tabs.map(([k,l])=>`<button type="button" role="tab" data-qitab="${k}" aria-selected="${k===qiTab}">${l}</button>`).join('')}</div>
@@ -2425,16 +2560,33 @@ function renderQInfoPage(){
   if(qiTab==='sl') qMountSlides(); else mountFit(buildInfo(rep),infoW(rep)); qDirtyHint(); qiWire();
   if(Z.font && Z.font!=='plex') ensureFont(Z.font).then(()=>{ if(view==='info'&&cur().type==='quarterly') refreshInfo(); });
 }
-function qiWire(){ const lf=document.getElementById('qiLogo'); if(lf) lf.addEventListener('change',qiLogoPick); }
+function qiWire(){ const lf=document.getElementById('qiLogo'); if(lf) lf.addEventListener('change',qiLogoPick);
+  const l2=document.getElementById('qiLogo2'); if(l2) l2.addEventListener('change',e=>qiImgPick(e,'logo2'));
+  const wi=document.getElementById('qiWmImg'); if(wi) wi.addEventListener('change',e=>qiImgPick(e,'wm')); }
+function qiImgPick(e,key){ const f=e.target.files[0]; e.target.value=''; if(!f) return; const img=new Image(), url=URL.createObjectURL(f);
+  img.onload=()=>{ const max=key==='wm'?700:240; const k=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight)); const cv=document.createElement('canvas'); cv.width=Math.round(img.naturalWidth*k); cv.height=Math.round(img.naturalHeight*k); cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+    const d=cv.toDataURL('image/png'); URL.revokeObjectURL(url); if(key==='wm'){ state.qinfo.wm.image=d; state.qinfo.wm.src='image'; } else state.qinfo[key]=d; save(); qiRedraw(); if(key==='wm') qWmRefresh(); else refreshInfo(); qDirtyHint(); toast('أُضيفت الصورة'); };
+  img.onerror=()=>{ URL.revokeObjectURL(url); toast('تعذرت قراءة الصورة'); }; img.src=url; }
+// العلامة المائية: صورة باهتة جاهزة تُحفظ مع الإعدادات
+function qWmRefresh(){ const Z=state.qinfo, W=Z.wm||{}; const src=W.on?(W.src==='image'?W.image:Z.logo):'';
+  if(!src){ Z.wmData=''; save(); refreshInfo(); return; }
+  const img=new Image(); img.onload=()=>{ const max=700, k=Math.min(1,max/Math.max(img.naturalWidth||max,img.naturalHeight||max)); const cv=document.createElement('canvas'); cv.width=Math.round((img.naturalWidth||max)*k); cv.height=Math.round((img.naturalHeight||max)*k);
+    const g=cv.getContext('2d'); g.globalAlpha=+W.op||0.07; g.drawImage(img,0,0,cv.width,cv.height); Z.wmData=cv.toDataURL('image/png'); save(); refreshInfo(); };
+  img.onerror=()=>{ Z.wmData=''; refreshInfo(); }; img.src=src; }
 function qiRedraw(){ const p=document.getElementById('qiBody'); if(p){ p.innerHTML=qiPanelBody(); qiWire(); } document.querySelectorAll('[data-qitab]').forEach(x=>x.setAttribute('aria-selected',x.dataset.qitab===qiTab)); }
 function qiLogoPick(e){ const f=e.target.files[0]; e.target.value=''; if(!f) return; const img=new Image(), url=URL.createObjectURL(f);
   img.onload=()=>{ const h=Math.min(240,img.naturalHeight), w=Math.round(img.naturalWidth*h/img.naturalHeight); const cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h);
-    state.qinfo.logo=cv.toDataURL('image/png'); URL.revokeObjectURL(url); save(); qiRedraw(); refreshInfo(); qDirtyHint(); toast('أُضيف الشعار'); };
+    state.qinfo.logo=cv.toDataURL('image/png'); URL.revokeObjectURL(url); save(); qiRedraw(); if(state.qinfo.wm&&state.qinfo.wm.on&&state.qinfo.wm.src!=='image') qWmRefresh(); else refreshInfo(); qDirtyHint(); toast('أُضيف الشعار'); };
   img.onerror=()=>{ URL.revokeObjectURL(url); toast('تعذرت قراءة الصورة'); }; img.src=url; }
 function qiInput(t){ const d=t.dataset;
+  if(d.qhf){ const [a,b]=d.qhf.split('.'), H=state.qinfo.hf=qHF(state.qinfo); let v=t.type==='checkbox'?(t.checked?1:0):t.value; if(b==='sz') v=+v; H[a][b]=v; save(); if(b==='on'||b==='st') qiRedraw(); refreshInfo(); qDirtyHint(); return true; }
+  if(d.qnt!=null){ const N=state.qinfo.notes; if(N[+d.qnt]) N[+d.qnt].t=t.value; save(); refreshInfo(); qDirtyHint(); return true; }
+  if(d.qnton!=null){ const N=state.qinfo.notes; if(N[+d.qnton]) N[+d.qnton].on=t.checked?1:0; save(); refreshInfo(); qDirtyHint(); return true; }
+  if(d.qwm){ state.qinfo.wm[d.qwm]=t.checked?1:0; save(); qiRedraw(); qWmRefresh(); qDirtyHint(); return true; }
+  if(['navy','cTotal','bg','txt'].includes(d.qi)&&state.qinfo.theme!=='custom'){ state.qinfo.theme='custom'; setTimeout(()=>document.querySelectorAll('[data-qitheme]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.qitheme==='custom')),0); }
   if(d.qihos!=null){ const off=new Set(state.qinfo.hosOff||[]); t.checked?off.delete(d.qihos):off.add(d.qihos); state.qinfo.hosOff=[...off]; save(); qiRedraw(); refreshInfo(); qDirtyHint(); return true; }
   if(d.qi==null) return false; const Z=state.qinfo;
-  let v=t.type==='checkbox'?t.checked:t.value; if(['topC','topCat','t1','t2','q','fsize','hosTop'].includes(d.qi)) v=+v; Z[d.qi]=v; save();
+  let v=t.type==='checkbox'?t.checked:t.value; if(['topC','topCat','t1','t2','q','fsize','hosTop','hcTop'].includes(d.qi)) v=+v; Z[d.qi]=v; save();
   if(d.qi==='layout'){ renderBody(); return true; }
   if(['sCover','sSummary','sHos','sCats'].includes(d.qi)){ refreshInfo(); qDirtyHint(); return true; }
   if(d.qi==='sOwn'){ qiRedraw(); refreshInfo(); qDirtyHint(); return true; }
@@ -2442,12 +2594,20 @@ function qiInput(t){ const d=t.dataset;
   if(d.qi==='q'||d.qi==='paper'){ qDirtyHint(); return true; }
   refreshInfo(); qDirtyHint(); return true; }
 function qiClick(b){ const d=b.dataset;
+  if(d.qitheme){ const Z=state.qinfo, T=Q_THEMES[d.qitheme]; Z.theme=d.qitheme; if(T){ Z.navy=T.navy; Z.cTotal=T.cTotal; Z.bg=T.bg; Z.txt='#1C2B39'; } save(); qiRedraw(); refreshInfo(); qDirtyHint(); return true; }
+  if(d.qistr){ const [k,v]=d.qistr.split(':'); state.qinfo[k]=v; save(); qiRedraw(); refreshInfo(); qDirtyHint(); return true; }
+  if(d.qhfc){ const H=state.qinfo.hf=qHF(state.qinfo); H[d.qhfc].c=''; save(); qiRedraw(); refreshInfo(); qDirtyHint(); return true; }
+  if(d.qwmset){ const [k,v]=d.qwmset.split(':'); state.qinfo.wm[k]=k==='op'?+v:v; save(); qiRedraw(); qWmRefresh(); qDirtyHint(); return true; }
+  if(d.qiact==='hf-reset'){ state.qinfo.hf=JSON.parse(JSON.stringify(Q_HF_DEF)); save(); qiRedraw(); refreshInfo(); qDirtyHint(); return true; }
+  if(d.qiact==='note-add'){ state.qinfo.notes.push({t:'',on:1}); save(); qiRedraw(); setTimeout(()=>{ const L=document.querySelectorAll('[data-qnt]'); L[L.length-1]?.focus(); },30); qDirtyHint(); return true; }
+  if(d.qnotedel!=null){ state.qinfo.notes.splice(+d.qnotedel,1); save(); qiRedraw(); refreshInfo(); qDirtyHint(); return true; }
+  if(d.qiact==='logo2-rm'){ state.qinfo.logo2=''; save(); qiRedraw(); refreshInfo(); qDirtyHint(); return true; }
   if(d.qitab){ const was=qiTab; qiTab=d.qitab; qiRedraw(); if((was==='sl')!==(qiTab==='sl')) refreshInfo(); return true; }
   if(d.qiset){ const [k,v]=d.qiset.split(':'); state.qinfo[k]=+v; save(); qiRedraw(); refreshInfo(); qDirtyHint(); return true; }
   if(d.qifs){ state.qinfo.fsize=+d.qifs; save(); qiRedraw(); refreshInfo(); qDirtyHint(); return true; }
   if(d.qiact==='save'){ qSnap=JSON.stringify(state.qinfo); saveNow(); qDirtyHint(); return true; }
   if(d.qiact==='cancel'){ if(!qDirty()){ toast('لا توجد تغييرات'); return true; } state.qinfo=JSON.parse(qSnap); save(); renderBody(); toast('أُلغيت التغييرات'); return true; }
-  if(d.qiact==='reset'){ dialog({title:'إرجاع إعدادات الإنفوجرافيك الربعي؟', body:'ترجع إعدادات الإنفوجرافيك الربعي إلى الافتراضي، ويبقى الشعار. لا يتأثر الإنفوجرافيك الآخر. يمكنك التراجع.', actions:[{label:'إرجاع',cls:'primary',run:()=>{ const lg=state.qinfo.logo; state.qinfo={...QI_DEF,logo:lg}; save(); renderBody(); }},{label:'إلغاء'}]}); return true; }
+  if(d.qiact==='reset'){ dialog({title:'إرجاع إعدادات الإنفوجرافيك الربعي؟', body:'ترجع إعدادات الإنفوجرافيك الربعي إلى الافتراضي، ويبقى الشعار. لا يتأثر الإنفوجرافيك الآخر. يمكنك التراجع.', actions:[{label:'إرجاع',cls:'primary',run:()=>{ const lg=state.qinfo.logo, l2=state.qinfo.logo2; state.qinfo={...QI_DEF,hf:JSON.parse(JSON.stringify(Q_HF_DEF)),wm:{...QI_DEF.wm},notes:[],logo:lg,logo2:l2}; save(); renderBody(); }},{label:'إلغاء'}]}); return true; }
   if(d.qiact==='hos-all'||d.qiact==='hos-none'){ if(d.qiact==='hos-all') state.qinfo.hosOff=[]; else { const all=new Set(); cur().qs.forEach(q=>q.hos.forEach(h=>all.add(fold(h.name)))); state.qinfo.hosOff=[...all]; } save(); qiRedraw(); refreshInfo(); qDirtyHint(); return true; }
   if(d.qiact==='logo-rm'){ state.qinfo.logo=''; save(); qiRedraw(); refreshInfo(); qDirtyHint(); return true; }
   return false; }
@@ -2595,18 +2755,24 @@ ${imgs.map((x,i)=>`<Override PartName="/ppt/slides/slide${i+1}.xml" ContentType=
 
 function qRatio(n){ const q=+qCfg().q||3; const ios=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
   const maxA=ios?16e6:((navigator.deviceMemory||4)>=8?60e6:40e6); return Math.max(1,Math.min(q,Math.sqrt(maxA/Math.max(1,n.offsetWidth*n.offsetHeight)))); }
-async function buildQPng(rep){ return withNode(buildInfo(rep), async n=>canvasBlob(await snap(n,qRatio(n)))); }
+async function buildQPng(rep){ return withNode(buildInfo(rep), async n=>{ const P=[...n.querySelectorAll('[data-page]')];
+  if(P.length<2){ const x=P[0]||n; return canvasBlob(await snap(x,qRatio(x))); }
+  const JSZip=await lib('jszip'), z=new JSZip();
+  for(let i=0;i<P.length;i++){ const cv=await snap(P[i],qRatio(P[i])); z.file(`${String(i+1).padStart(2,'0')}-${safeName(P[i].dataset.page)}.png`, await canvasBlob(cv)); cv.width=cv.height=0; }
+  return z.generateAsync({type:'blob',mimeType:'application/zip'}); }); }
 async function buildQPdf(rep){
   const PDFLib=await lib('pdflib'), Z=qCfg();
   return withNode(buildInfo(rep), async n=>{
-    const cv=await snap(n,qRatio(n)), pdf=await PDFLib.PDFDocument.create();
+    const pdf=await PDFLib.PDFDocument.create(), PP=[...n.querySelectorAll('[data-page]')];
+    for(const x of (PP.length?PP:[n])){
+    const cv=await snap(x,qRatio(x));
     const img=await pdf.embedPng(new Uint8Array(await (await canvasBlob(cv)).arrayBuffer()));
-    const land=n.offsetWidth>n.offsetHeight;
+    const land=x.offsetWidth>x.offsetHeight;
     let PW,PH,M;
-    if(Z.paper==='fit'){ PW=n.offsetWidth*0.75; PH=n.offsetHeight*0.75; M=0; }
+    if(Z.paper==='fit'){ PW=x.offsetWidth*0.75; PH=x.offsetHeight*0.75; M=0; }
     else { const A=Z.paper==='a4'?[595.28,841.89]:[841.89,1190.55]; [PW,PH]=land?[A[1],A[0]]:A; M=18; }
     const s=Math.min((PW-2*M)/cv.width,(PH-2*M)/cv.height), w=cv.width*s, h=cv.height*s;
-    const page=pdf.addPage([PW,PH]); page.drawImage(img,{x:(PW-w)/2,y:(PH-h)/2,width:w,height:h});
+    const page=pdf.addPage([PW,PH]); page.drawImage(img,{x:(PW-w)/2,y:(PH-h)/2,width:w,height:h}); cv.width=cv.height=0; }
     pdf.setTitle(igTok(Z.title||'التقرير الربعي',rep)); return new Blob([await pdf.save()],{type:'application/pdf'}); });
 }
 
@@ -2620,7 +2786,7 @@ function qSheetXml(rep){
   const sty=[ST.text,ST.text,ST.text,ST.text,ST.int,ST.pct,ST.int,ST.int,ST.text];
   rep.qs.forEach(q=>{
     R([q.label,'ربع','',q.date,...vals(q.sum),q.show?'يظهر في الإنفوجرافيك':'للمقارنة فقط'],[ST.slabel,ST.slabel,ST.slabel,ST.slabel,ST.sint,ST.spct,ST.sint,ST.sint,ST.slabel]);
-    q.hos.forEach(h=>{ R([q.label,'قطاع',h.name,h.name,...vals(h),''],sty); h.centers.forEach(c=>R([q.label,'مركز',h.name,c.name,...vals(c),''],sty)); });
+    q.hos.forEach(h=>{ R([q.label,'قطاع',h.name,h.name,...vals(h),''],sty); h.centers.forEach(c=>R([q.label,'مركز',h.name,c.name,...vals(c),''],sty)); (h.cats||[]).forEach(c=>R([q.label,'تصنيف مستشفى',h.name,c.name,...vals(c),''],sty)); });
     q.cats.forEach(c=>R([q.label,'تصنيف','',c.name,...vals(c),''],sty));
   });
   const xml=rows.map((r,ri)=>`<row r="${ri+1}">${r.cells.map((v,ci)=>{ const ref=colName(ci)+(ri+1), s=r.st[ci]?` s="${r.st[ci]}"`:'';
@@ -2643,6 +2809,7 @@ function qParseSheet(name, grid){
     if(t==='ربع'){ q.date=nm; q.sum=o; q.show=!/مقارنة/.test(String(cell(r,8))); }
     else if(t==='قطاع'){ q.hos.push({name:nm||hn,...o,centers:[]}); }
     else if(t==='مركز'){ let h=q.hos.find(x=>fold(x.name)===fold(hn)); if(!h){ h={...qRow(hn),centers:[]}; q.hos.push(h); } h.centers.push({name:nm,...o}); }
+    else if(t==='تصنيف مستشفى'){ let h=q.hos.find(x=>fold(x.name)===fold(hn)); if(!h){ h={...qRow(hn),centers:[],cats:[]}; q.hos.push(h); } (h.cats||(h.cats=[])).push({name:nm,...o}); }
     else if(t==='تصنيف'){ q.cats.push({name:nm,...o}); } }
   return normQ(rep);
 }
@@ -2663,7 +2830,8 @@ function qMergeInto(T, inc){
     tq.sum.count=iq.sum.count; tq.sum.over=iq.sum.over; tq.sum.within=iq.sum.within;
     iq.hos.forEach(h=>{ let th=tq.hos.find(x=>fold(x.name)===fold(h.name));
       if(!th){ th={...qRow(h.name),centers:[]}; tq.hos.push(th); } upd(th,h);
-      h.centers.forEach(c=>{ let tc=th.centers.find(x=>fold(x.name)===fold(c.name)); if(!tc){ tc=qRow(c.name); th.centers.push(tc); } upd(tc,c); }); });
+      h.centers.forEach(c=>{ let tc=th.centers.find(x=>fold(x.name)===fold(c.name)); if(!tc){ tc=qRow(c.name); th.centers.push(tc); } upd(tc,c); });
+      if(!th.cats) th.cats=[]; (h.cats||[]).forEach(c=>{ let tc=th.cats.find(x=>fold(x.name)===fold(c.name)); if(!tc){ tc=qRow(c.name); th.cats.push(tc); } upd(tc,c); }); });
     iq.cats.forEach(c=>{ let tc=tq.cats.find(x=>fold(x.name)===fold(c.name)); if(!tc){ tc=qRow(c.name); tq.cats.push(tc); } upd(tc,c); });
     st.updated.push(tq.label); });
   T.source='db'; normQ(T); return st;
