@@ -629,7 +629,7 @@ function load(){
   return seedState();
 }
 let saveTimer=null;
-const APP_VER='14';
+const APP_VER='15';
 const UI_KEY='rep937-ui-v1';
 const INFO_DEF={v:4,tpl:'A',cols:3,org1:'تجمع مكة المكرمة الصحي',org2:'الرعاية الصحية الأولية',org3:'تجربة المستفيد',title:'{اسم_التقرير}',sub:'{الفترة} ({تاريخ_الفترة}) مقارنةً بـ {الفترة_السابقة}',tag:'إجمالي البلاغات · رضا المستفيد · مستوى الخدمة',by:'عبدالعزيز الوذيناني',sup:'منيرة المزيني',date:'',logo:'',cTotal:'#1E88C8',cSat:'#7CB342',cSl:'#1B3A5C',navy:'#1B3A5C',cFoot:'#5378C0',t1:80,t2:90,prevBar:true,prevVal:true,chg:true,rank:true,strip:true,secSub:true,grpHead:true,satParts:true,q:3,font:'plex',fsize:100,kpis:[['total',true],['sat',true],['sl',true]],secs:{},order:[]};
 const RF_DEF={limit:0,hideGroups:[],cmp:'one'};
@@ -2330,7 +2330,8 @@ function qBuildInfo(rep,opt){
 const QI_DEF={v:1,layout:'A',topC:3,topCat:5,clSort:'count',
   title:'التقرير الربعي لبلاغات 937',sub:'',org1:'تجمع مكة المكرمة الصحي',org2:'الرعاية الصحية الأولية',org3:'تجربة المستفيد',
   by:'',sup:'',date:'',logo:'',font:'plex',fsize:100,navy:'#1B3A5C',cTotal:'#1E88C8',t1:80,t2:90,strip:true,q:3,paper:'a3',hosTop:0,hosOff:[],
-  sOwn:false,sTitle:'',sSub:'',sOrg1:'',sOrg2:'',sOrg3:'',sDate:'',sFoot:'',sBy:true};
+  sOwn:false,sTitle:'',sSub:'',sOrg1:'',sOrg2:'',sOrg3:'',sDate:'',sFoot:'',sBy:true,
+  sFs:100,sSum:5,sPer:1,sCover:true,sSummary:true,sHos:true,sCats:true};
 function fixQinfo(s){
   if(!s.qinfo || s.qinfo.v!==1){ const I=s.info||{}, old=(I.q)||{};
     s.qinfo={...QI_DEF, layout:old.layout||'A', topC:old.topC||3, topCat:old.topCat||5, clSort:old.clSort||'count', sub:old.sub||'',
@@ -2382,7 +2383,14 @@ function qiPanelBody(){
      <div class="colors"><label><input type="color" data-qi="navy" value="${esc(Z.navy)}">اللون الداكن</label><label><input type="color" data-qi="cTotal" value="${esc(Z.cTotal)}">لون العناوين</label></div>
      <div class="two"><div><label class="fld-lbl" for="qi_t1">رضا أزرق من (%)</label><input class="inp" type="number" min="0" max="100" id="qi_t1" data-qi="t1" value="${Z.t1}"></div><div><label class="fld-lbl" for="qi_t2">رضا أخضر من (%)</label><input class="inp" type="number" min="0" max="100" id="qi_t2" data-qi="t2" value="${Z.t2}"></div></div>`;
   if(qiTab==='sl'){ const ph=(k,d)=>fld(k[0],k[1],d||'');
-    return `<div class="togs">${tog('sOwn','ترويسة خاصة بالعرض تختلف عن الإنفوجرافيك')}</div>
+    const chips=(k,arr)=>`<div class="chips">${arr.map(([v,l])=>`<button type="button" class="chip" data-qiset="${k}:${v}" aria-pressed="${+Z[k]===v}">${l}</button>`).join('')}</div>`;
+    return `<div><span class="fld-lbl">حجم خط الشرائح</span>${chips('sFs',[[75,'صغير جداً'],[85,'صغير'],[100,'متوسط'],[115,'كبير']])}</div>
+     <div class="two"><div><span class="fld-lbl">المستشفيات في كل شريحة</span>${chips('sPer',[[1,'1'],[2,'2'],[3,'3']])}</div>
+       <div><span class="fld-lbl">القطاعات في شريحة الملخص</span>${chips('sSum',[[4,'4'],[5,'5'],[6,'6'],[8,'8']])}</div></div>
+     <div><span class="fld-lbl">الشرائح المضمّنة</span><div class="togs">${tog('sCover','الغلاف وبطاقات الأرباع')}${tog('sSummary','ملخص القطاعات')}${tog('sHos','شرائح المستشفيات ومراكزها')}${tog('sCats','التصانيف')}</div></div>
+     <p class="hint" style="margin:0"><b id="qiSlN">…</b> · مستقل عن حجم خط الإنفوجرافيك. إذا لم يتسع محتوى شريحة صُغّرت تلك الشريحة وحدها حتى لا ينقطع شيء، فالخط الأصغر أو عدد أقل في الشريحة يعطي كتابة أوضح.</p>
+     <hr style="border:0;border-top:1px solid var(--line,#E3E9EF);margin:4px 0">
+     <div class="togs">${tog('sOwn','ترويسة خاصة بالعرض تختلف عن الإنفوجرافيك')}</div>
      ${Z.sOwn?`${ph(['sTitle','عنوان العرض'],igTok(Z.title||'',cur()))}
      ${ph(['sSub','السطر تحت العنوان'],Z.sub||'تلقائي: أسماء الأرباع')}
      ${ph(['sOrg1','سطر الجهة 1'],Z.org1)}${ph(['sOrg2','سطر الجهة 2'],Z.org2)}${ph(['sOrg3','سطر الجهة 3'],Z.org3)}
@@ -2406,7 +2414,7 @@ function qiPanelBody(){
 function renderQInfoPage(){
   const b=document.getElementById('body'), rep=cur(), Z=qCfg();
   if(qSnap==null) qSnap=JSON.stringify(state.qinfo);
-  const tabs=[['tpl','الشكل'],['secs','الترتيب والعدد'],['head','العنوان والترويسة'],['look','الخط والألوان'],['sl','ترويسة العرض'],['exp','التصدير']];
+  const tabs=[['tpl','الشكل'],['secs','الترتيب والعدد'],['head','العنوان والترويسة'],['look','الخط والألوان'],['sl','العرض (PowerPoint)'],['exp','التصدير']];
   b.innerHTML=`<div class="info-lay ig3"><section class="card igp"><div class="igp-h"><h3>إعداد الإنفوجرافيك الربعي</h3><span class="hint" id="qiHint"></span></div>
       <p class="hint" style="margin:0 14px 6px">إعدادات مستقلة عن إنفوجرافيك التقارير الأسبوعية وتقارير المستشفيات.</p>
       <div class="ptabs2" role="tablist">${tabs.map(([k,l])=>`<button type="button" role="tab" data-qitab="${k}" aria-selected="${k===qiTab}">${l}</button>`).join('')}</div>
@@ -2428,12 +2436,14 @@ function qiInput(t){ const d=t.dataset;
   if(d.qi==null) return false; const Z=state.qinfo;
   let v=t.type==='checkbox'?t.checked:t.value; if(['topC','topCat','t1','t2','q','fsize','hosTop'].includes(d.qi)) v=+v; Z[d.qi]=v; save();
   if(d.qi==='layout'){ renderBody(); return true; }
+  if(['sCover','sSummary','sHos','sCats'].includes(d.qi)){ refreshInfo(); qDirtyHint(); return true; }
   if(d.qi==='sOwn'){ qiRedraw(); refreshInfo(); qDirtyHint(); return true; }
   if(d.qi==='font'){ ensureFont(v).then(refreshInfo); qDirtyHint(); return true; }
   if(d.qi==='q'||d.qi==='paper'){ qDirtyHint(); return true; }
   refreshInfo(); qDirtyHint(); return true; }
 function qiClick(b){ const d=b.dataset;
   if(d.qitab){ const was=qiTab; qiTab=d.qitab; qiRedraw(); if((was==='sl')!==(qiTab==='sl')) refreshInfo(); return true; }
+  if(d.qiset){ const [k,v]=d.qiset.split(':'); state.qinfo[k]=+v; save(); qiRedraw(); refreshInfo(); qDirtyHint(); return true; }
   if(d.qifs){ state.qinfo.fsize=+d.qifs; save(); qiRedraw(); refreshInfo(); qDirtyHint(); return true; }
   if(d.qiact==='save'){ qSnap=JSON.stringify(state.qinfo); saveNow(); qDirtyHint(); return true; }
   if(d.qiact==='cancel'){ if(!qDirty()){ toast('لا توجد تغييرات'); return true; } state.qinfo=JSON.parse(qSnap); save(); renderBody(); toast('أُلغيت التغييرات'); return true; }
@@ -2456,13 +2466,16 @@ function qSlidesEl(rep,P){
      <div class="ttl"><h1>${esc(title)}</h1><h2>${esc(sub)}</h2></div><div class="lg">${qLogo(72)}</div></div>`;
   const by=Z.sBy&&(Z.by||Z.sup)?`<div class="sby">${Z.by?`<span><small>إعداد</small>${esc(Z.by)}</span>`:''}${Z.sup?`<span><small>إشراف</small>${esc(Z.sup)}</span>`:''}</div>`:'';
   const S=[];
-  S.push({cover:true,body:`${hd}<div style="padding:22px 30px 0">${kpi}</div><div style="padding:16px 30px 0">${key}</div>${by}`});
-  const per=5, parts=Math.ceil(hosNames.length/per);
-  for(let i=0;i<hosNames.length;i+=per) S.push({name:'ملخص القطاعات'+(parts>1?` (${i/per+1} من ${parts})`:''),
+  const inc=k=>Z[k]!==false;
+  if(inc('sCover')) S.push({cover:true,body:`${hd}<div style="padding:22px 30px 0">${kpi}</div><div style="padding:16px 30px 0">${key}</div>${by}`});
+  const per=Math.max(1,+Z.sSum||5), parts=Math.ceil(hosNames.length/per);
+  if(inc('sSummary')) for(let i=0;i<hosNames.length;i+=per) S.push({name:'ملخص القطاعات'+(parts>1?` (${i/per+1} من ${parts})`:''),
     body:`<div class="card" style="padding:8px 14px">${qh('القطاع')}</div><div class="card sc" style="margin-top:10px;display:grid;gap:6px">${hosNames.slice(i,i+per).map(sHead).join('')}</div>`});
-  hosNames.forEach((hk,i)=>S.push({name:hk.name,tag:`القطاع ${i+1} من ${hosNames.length}`,
-    body:`<div class="card" style="padding:8px 14px">${qh('المراكز')}</div><div style="margin-top:10px">${card(hk)}</div>`}));
-  S.push({name:'التصانيف',tag:`أعلى ${Z.topCat} في كل ربع`,body:`<div class="card" style="padding:8px 14px">${qh('التصنيف')}</div><div style="margin-top:10px">${catCard}</div>`});
+  const hp=Math.max(1,+Z.sPer||1), HN=hosNames.length;
+  if(inc('sHos')) for(let i=0;i<HN;i+=hp){ const G=hosNames.slice(i,i+hp);
+    S.push({name:G.map(h=>h.name).join(' · '),tag:G.length>1?`القطاعات ${i+1}–${i+G.length} من ${HN}`:`القطاع ${i+1} من ${HN}`,
+    body:`<div class="card" style="padding:8px 14px">${qh('المراكز')}</div><div style="margin-top:10px;display:grid;gap:10px">${G.map(card).join('')}</div>`}); }
+  if(inc('sCats')) S.push({name:'التصانيف',tag:`أعلى ${Z.topCat} في كل ربع`,body:`<div class="card" style="padding:8px 14px">${qh('التصنيف')}</div><div style="margin-top:10px">${catCard}</div>`});
   const foot=(k)=>`<div class="sft"><span>${esc(FT)}</span><span>${esc(DT)}</span><span>${k} / ${S.length}</span></div>`;
   const el=document.createElement('div');
   el.innerHTML=`<style>${css}
@@ -2500,7 +2513,7 @@ function qSlidesEl(rep,P){
 }
 function qBuildSlides(rep){
   const el=qBuildInfo(rep,{slides:true}); el.dataset.font=qCfg().font||'plex'; el.style.background='#fff';
-  const k=(+qCfg().fsize||100)/100;
+  const k=(+qCfg().sFs||100)/100;
   if(k!==1){ const st=el.querySelector('style'); if(st) st.textContent=st.textContent.replace(/font-size:\s*([\d.]+)px/g,(m,v)=>`font-size:${(+v*k).toFixed(1)}px`); }
   return el;
 }
@@ -2515,7 +2528,10 @@ const qSlideW=N=>1120+Math.max(0,N-3)*260;
 /* live preview of the slides inside the panel */
 function qMountSlides(){ const rep=cur(), W0=qSlideW(Math.max(1,qShownN(rep))), el=qBuildSlides(rep);
   el.querySelectorAll('[data-slide]').forEach(x=>{ x.style.marginBottom='22px'; x.style.boxShadow='0 0 0 1px #D5DEE7'; });
-  mountFit(el,W0); el.querySelectorAll('[data-slide]').forEach(x=>{ x.style.zoom=''; const w=qFitSlide(x); if(w>W0){ x.style.width=w+'px'; x.style.zoom=W0/w; } }); fitNow(); }
+  mountFit(el,W0); el.querySelectorAll('[data-slide]').forEach(x=>{ x.style.zoom=''; const w=qFitSlide(x); if(w>W0){ x.style.width=w+'px'; x.style.zoom=W0/w; } });
+  const n=el.querySelectorAll('[data-slide]').length, small=[...el.querySelectorAll('[data-slide]')].filter(x=>x.style.zoom&&+x.style.zoom<0.86).length;
+  const t=document.getElementById('qiSlN'); if(t) t.textContent=`${n} شرائح`+(small?` (${small} منها صُغّرت لتتسع)`:'');
+  fitNow(); }
 const Q_SLIDE_PX={2:1920,3:2560,4:3840};
 async function qSlideImages(rep){
   const root=qBuildSlides(rep), out=[];
