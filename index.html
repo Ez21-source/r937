@@ -629,7 +629,7 @@ function load(){
   return seedState();
 }
 let saveTimer=null;
-const APP_VER='13';
+const APP_VER='14';
 const UI_KEY='rep937-ui-v1';
 const INFO_DEF={v:4,tpl:'A',cols:3,org1:'تجمع مكة المكرمة الصحي',org2:'الرعاية الصحية الأولية',org3:'تجربة المستفيد',title:'{اسم_التقرير}',sub:'{الفترة} ({تاريخ_الفترة}) مقارنةً بـ {الفترة_السابقة}',tag:'إجمالي البلاغات · رضا المستفيد · مستوى الخدمة',by:'عبدالعزيز الوذيناني',sup:'منيرة المزيني',date:'',logo:'',cTotal:'#1E88C8',cSat:'#7CB342',cSl:'#1B3A5C',navy:'#1B3A5C',cFoot:'#5378C0',t1:80,t2:90,prevBar:true,prevVal:true,chg:true,rank:true,strip:true,secSub:true,grpHead:true,satParts:true,q:3,font:'plex',fsize:100,kpis:[['total',true],['sat',true],['sl',true]],secs:{},order:[]};
 const RF_DEF={limit:0,hideGroups:[],cmp:'one'};
@@ -1821,7 +1821,7 @@ function buildInfo(rep){ const t=state.info.tpl; const el=rep.type==='quarterly'
   if(k!==1){ const st=el.querySelector('style'); if(st) st.textContent=st.textContent.replace(/font-size:\s*([\d.]+)px/g,(m,v)=>`font-size:${(+v*k).toFixed(1)}px`); el.querySelectorAll('svg text[font-size]').forEach(x=>x.setAttribute('font-size',(+x.getAttribute('font-size')*k).toFixed(1))); }
   return el; }
 let infoT=null;
-function refreshInfo(){ clearTimeout(infoT); infoT=setTimeout(()=>{ mountFit(buildInfo(cur()),infoW(cur())); igDirtyHint(); },120); }
+function refreshInfo(){ clearTimeout(infoT); infoT=setTimeout(()=>{ if(cur().type==='quarterly'&&qiTab==='sl'&&view==='info') qMountSlides(); else mountFit(buildInfo(cur()),infoW(cur())); igDirtyHint(); },120); }
 
 /* ---------- integrated panel ---------- */
 let igTab='tpl', igSnap=null;
@@ -2314,7 +2314,7 @@ function qBuildInfo(rep,opt){
   `;
   const hd=`<div class="hd"><div class="org">${c.org1?`<b>${esc(c.org1)}</b>`:''}${c.org2?`<span>${esc(c.org2)}</span><br>`:''}${esc(c.org3||'')}</div>
      <div class="ttl"><h1>${esc(title)}</h1><h2>${esc(sub)}</h2></div><div class="lg">${qLogo(72)}</div></div>`;
-  if(opt&&opt.slides) return qSlidesEl(rep,{Z,NAVY,N,css,hd,kpi,key,qh,sHead,card,catCard,hosNames,title,cT:c.cTotal||'#1E88C8'});
+  if(opt&&opt.slides) return qSlidesEl(rep,{Z,NAVY,N,css,hd,kpi,key,qh,sHead,card,catCard,hosNames,title,sub,cT:c.cTotal||'#1E88C8'});
   el.innerHTML=`<style>${css}</style>
   <div class="qi">${hd}
    <div style="padding:18px 30px 0">${kpi}</div>
@@ -2329,7 +2329,8 @@ function qBuildInfo(rep,opt){
 /* ---------- v10: the quarterly infographic has its own settings, separate from the weekly/hospital one ---------- */
 const QI_DEF={v:1,layout:'A',topC:3,topCat:5,clSort:'count',
   title:'التقرير الربعي لبلاغات 937',sub:'',org1:'تجمع مكة المكرمة الصحي',org2:'الرعاية الصحية الأولية',org3:'تجربة المستفيد',
-  by:'',sup:'',date:'',logo:'',font:'plex',fsize:100,navy:'#1B3A5C',cTotal:'#1E88C8',t1:80,t2:90,strip:true,q:3,paper:'a3',hosTop:0,hosOff:[]};
+  by:'',sup:'',date:'',logo:'',font:'plex',fsize:100,navy:'#1B3A5C',cTotal:'#1E88C8',t1:80,t2:90,strip:true,q:3,paper:'a3',hosTop:0,hosOff:[],
+  sOwn:false,sTitle:'',sSub:'',sOrg1:'',sOrg2:'',sOrg3:'',sDate:'',sFoot:'',sBy:true};
 function fixQinfo(s){
   if(!s.qinfo || s.qinfo.v!==1){ const I=s.info||{}, old=(I.q)||{};
     s.qinfo={...QI_DEF, layout:old.layout||'A', topC:old.topC||3, topCat:old.topCat||5, clSort:old.clSort||'count', sub:old.sub||'',
@@ -2380,6 +2381,17 @@ function qiPanelBody(){
      <div><span class="fld-lbl">حجم الخط</span><div class="chips">${RF_SIZES.map(([v,l])=>`<button type="button" class="chip" data-qifs="${v}" aria-pressed="${+Z.fsize===v}">${l}</button>`).join('')}</div></div>
      <div class="colors"><label><input type="color" data-qi="navy" value="${esc(Z.navy)}">اللون الداكن</label><label><input type="color" data-qi="cTotal" value="${esc(Z.cTotal)}">لون العناوين</label></div>
      <div class="two"><div><label class="fld-lbl" for="qi_t1">رضا أزرق من (%)</label><input class="inp" type="number" min="0" max="100" id="qi_t1" data-qi="t1" value="${Z.t1}"></div><div><label class="fld-lbl" for="qi_t2">رضا أخضر من (%)</label><input class="inp" type="number" min="0" max="100" id="qi_t2" data-qi="t2" value="${Z.t2}"></div></div>`;
+  if(qiTab==='sl'){ const ph=(k,d)=>fld(k[0],k[1],d||'');
+    return `<div class="togs">${tog('sOwn','ترويسة خاصة بالعرض تختلف عن الإنفوجرافيك')}</div>
+     ${Z.sOwn?`${ph(['sTitle','عنوان العرض'],igTok(Z.title||'',cur()))}
+     ${ph(['sSub','السطر تحت العنوان'],Z.sub||'تلقائي: أسماء الأرباع')}
+     ${ph(['sOrg1','سطر الجهة 1'],Z.org1)}${ph(['sOrg2','سطر الجهة 2'],Z.org2)}${ph(['sOrg3','سطر الجهة 3'],Z.org3)}
+     <div class="two">${ph(['sDate','تاريخ العرض'],Z.date||igToday())}${ph(['sFoot','نص الشريط السفلي'],[Z.org1,Z.org3].filter(Boolean).join(' · '))}</div>
+     <p class="hint" style="margin:0">الخانة الفارغة تأخذ قيمة الإنفوجرافيك (المكتوبة بالرمادي). يمكن استخدام {اسم_التقرير} في العنوان.</p>`
+     :`<p class="hint" style="margin:0">الشرائح الآن تستخدم ترويسة الإنفوجرافيك من تبويب «العنوان والترويسة». فعّل الخيار أعلاه لتكتب عنواناً وجهة وتاريخاً مختلفة للعرض فقط.</p>`}
+     <div class="togs">${tog('sBy','إظهار «إعداد» و«إشراف» في شريحة الغلاف')}</div>
+     <p class="hint" style="margin:0">الأسماء نفسها تُكتب في تبويب «العنوان والترويسة». الشعار والخط والألوان مشتركة مع الإنفوجرافيك.</p>
+     <div class="explist"><button type="button" class="btn" data-pexp="qinfo-pptx"><b>تصدير عرض PowerPoint</b><small>بالترويسة الظاهرة في المعاينة</small></button></div>`; }
   if(qiTab==='exp') return `<div class="explist">
       <button type="button" class="btn" data-pexp="qinfo-png"><b>صورة PNG واضحة</b><small>بنفس شكل المعاينة وبالوضوح المختار أدناه</small></button>
       <button type="button" class="btn" data-pexp="qinfo-pdf"><b>PDF واضح</b><small>صفحة واحدة بحجم الورقة المختار، جاهزة للطباعة والإرسال</small></button>
@@ -2394,7 +2406,7 @@ function qiPanelBody(){
 function renderQInfoPage(){
   const b=document.getElementById('body'), rep=cur(), Z=qCfg();
   if(qSnap==null) qSnap=JSON.stringify(state.qinfo);
-  const tabs=[['tpl','الشكل'],['secs','الترتيب والعدد'],['head','العنوان والترويسة'],['look','الخط والألوان'],['exp','التصدير']];
+  const tabs=[['tpl','الشكل'],['secs','الترتيب والعدد'],['head','العنوان والترويسة'],['look','الخط والألوان'],['sl','ترويسة العرض'],['exp','التصدير']];
   b.innerHTML=`<div class="info-lay ig3"><section class="card igp"><div class="igp-h"><h3>إعداد الإنفوجرافيك الربعي</h3><span class="hint" id="qiHint"></span></div>
       <p class="hint" style="margin:0 14px 6px">إعدادات مستقلة عن إنفوجرافيك التقارير الأسبوعية وتقارير المستشفيات.</p>
       <div class="ptabs2" role="tablist">${tabs.map(([k,l])=>`<button type="button" role="tab" data-qitab="${k}" aria-selected="${k===qiTab}">${l}</button>`).join('')}</div>
@@ -2402,7 +2414,7 @@ function renderQInfoPage(){
       <div class="igp-f"><button type="button" class="btn sm primary" data-qiact="save"><span class="dirty-dot"></span>اعتماد</button><button type="button" class="btn sm" data-qiact="cancel">إلغاء التغييرات</button><button type="button" class="btn sm ghost" data-qiact="reset">الافتراضي</button><span style="flex:1"></span>
         <button type="button" class="btn sm primary" data-pexp="qinfo-png">${IC.img||''}صورة واضحة</button><button type="button" class="btn sm primary" data-pexp="qinfo-pdf">PDF واضح</button><button type="button" class="btn sm primary" data-pexp="qinfo-pptx">PowerPoint</button></div></section>
     <div style="min-width:0"><div class="fitbox" style="margin-top:0"><div class="fitwrap" id="fitwrap"></div></div><p class="hint">المعاينة تتحدث مباشرة. الأرقام من صفحة «إدخال البيانات».</p></div></div>`;
-  mountFit(buildInfo(rep),infoW(rep)); qDirtyHint(); qiWire();
+  if(qiTab==='sl') qMountSlides(); else mountFit(buildInfo(rep),infoW(rep)); qDirtyHint(); qiWire();
   if(Z.font && Z.font!=='plex') ensureFont(Z.font).then(()=>{ if(view==='info'&&cur().type==='quarterly') refreshInfo(); });
 }
 function qiWire(){ const lf=document.getElementById('qiLogo'); if(lf) lf.addEventListener('change',qiLogoPick); }
@@ -2416,11 +2428,12 @@ function qiInput(t){ const d=t.dataset;
   if(d.qi==null) return false; const Z=state.qinfo;
   let v=t.type==='checkbox'?t.checked:t.value; if(['topC','topCat','t1','t2','q','fsize','hosTop'].includes(d.qi)) v=+v; Z[d.qi]=v; save();
   if(d.qi==='layout'){ renderBody(); return true; }
+  if(d.qi==='sOwn'){ qiRedraw(); refreshInfo(); qDirtyHint(); return true; }
   if(d.qi==='font'){ ensureFont(v).then(refreshInfo); qDirtyHint(); return true; }
   if(d.qi==='q'||d.qi==='paper'){ qDirtyHint(); return true; }
   refreshInfo(); qDirtyHint(); return true; }
 function qiClick(b){ const d=b.dataset;
-  if(d.qitab){ qiTab=d.qitab; qiRedraw(); return true; }
+  if(d.qitab){ const was=qiTab; qiTab=d.qitab; qiRedraw(); if((was==='sl')!==(qiTab==='sl')) refreshInfo(); return true; }
   if(d.qifs){ state.qinfo.fsize=+d.qifs; save(); qiRedraw(); refreshInfo(); qDirtyHint(); return true; }
   if(d.qiact==='save'){ qSnap=JSON.stringify(state.qinfo); saveNow(); qDirtyHint(); return true; }
   if(d.qiact==='cancel'){ if(!qDirty()){ toast('لا توجد تغييرات'); return true; } state.qinfo=JSON.parse(qSnap); save(); renderBody(); toast('أُلغيت التغييرات'); return true; }
@@ -2432,17 +2445,25 @@ function qiClick(b){ const d=b.dataset;
 /* sharp exports */
 /* ---------- v13: presentation slides (16:9) — the tall infographic split into readable landscape slides ---------- */
 function qSlidesEl(rep,P){
-  const {Z,NAVY,N,css,hd,kpi,key,qh,sHead,card,catCard,hosNames,title,cT}=P;
-  const W0=1120+Math.max(0,N-3)*260;
+  const {Z,NAVY,N,css,kpi,key,qh,sHead,card,catCard,hosNames,cT}=P;
+  const W0=qSlideW(N);
+  /* v14: the slides may have their own header; an empty field falls back to the infographic's */
+  const own=!!Z.sOwn, g=(k,d)=>own&&String(Z[k]||'').trim()?Z[k]:d;
+  const title=own&&String(Z.sTitle||'').trim()?igTok(Z.sTitle,rep):P.title, sub=g('sSub',P.sub);
+  const O1=g('sOrg1',Z.org1), O2=g('sOrg2',Z.org2), O3=g('sOrg3',Z.org3), DT=g('sDate',Z.date||igToday());
+  const FT=g('sFoot',[O1,O3].filter(Boolean).join(' · '));
+  const hd=`<div class="hd"><div class="org">${O1?`<b>${esc(O1)}</b>`:''}${O2?`<span>${esc(O2)}</span><br>`:''}${esc(O3||'')}</div>
+     <div class="ttl"><h1>${esc(title)}</h1><h2>${esc(sub)}</h2></div><div class="lg">${qLogo(72)}</div></div>`;
+  const by=Z.sBy&&(Z.by||Z.sup)?`<div class="sby">${Z.by?`<span><small>إعداد</small>${esc(Z.by)}</span>`:''}${Z.sup?`<span><small>إشراف</small>${esc(Z.sup)}</span>`:''}</div>`:'';
   const S=[];
-  S.push({cover:true,body:`${hd}<div style="padding:22px 30px 0">${kpi}</div><div style="padding:16px 30px 0">${key}</div>`});
+  S.push({cover:true,body:`${hd}<div style="padding:22px 30px 0">${kpi}</div><div style="padding:16px 30px 0">${key}</div>${by}`});
   const per=5, parts=Math.ceil(hosNames.length/per);
   for(let i=0;i<hosNames.length;i+=per) S.push({name:'ملخص القطاعات'+(parts>1?` (${i/per+1} من ${parts})`:''),
     body:`<div class="card" style="padding:8px 14px">${qh('القطاع')}</div><div class="card sc" style="margin-top:10px;display:grid;gap:6px">${hosNames.slice(i,i+per).map(sHead).join('')}</div>`});
   hosNames.forEach((hk,i)=>S.push({name:hk.name,tag:`القطاع ${i+1} من ${hosNames.length}`,
     body:`<div class="card" style="padding:8px 14px">${qh('المراكز')}</div><div style="margin-top:10px">${card(hk)}</div>`}));
   S.push({name:'التصانيف',tag:`أعلى ${Z.topCat} في كل ربع`,body:`<div class="card" style="padding:8px 14px">${qh('التصنيف')}</div><div style="margin-top:10px">${catCard}</div>`});
-  const foot=(k)=>`<div class="sft"><span>${esc(Z.org1||'')}${Z.org3?' · '+esc(Z.org3):''}</span><span>${esc(Z.date||igToday())}</span><span>${k} / ${S.length}</span></div>`;
+  const foot=(k)=>`<div class="sft"><span>${esc(FT)}</span><span>${esc(DT)}</span><span>${k} / ${S.length}</span></div>`;
   const el=document.createElement('div');
   el.innerHTML=`<style>${css}
   .qs{box-sizing:border-box}
@@ -2450,6 +2471,8 @@ function qSlidesEl(rep,P){
   .qs .sbar b{display:block;font-size:27px;color:${NAVY};font-weight:700;line-height:1.25} .qs .sbar span{font-size:15px;color:${cT}}
   .qs .sbody{flex:1;min-height:0;overflow:hidden;padding:14px 30px}
   .qs .sbody.cv{padding:0 0 10px}
+  .qs .sby{display:flex;justify-content:center;gap:48px;padding:20px 30px 0;font-size:18px;color:${NAVY};font-weight:600}
+  .qs .sby small{font-size:14.5px;color:#6B7B8A;font-weight:400;margin-inline-end:8px}
   .qs .sft{display:flex;justify-content:space-between;align-items:center;background:${NAVY};color:#fff;padding:8px 30px;font-size:14px}
   .qs .hd{padding:30px 36px 22px} .qs .ttl h1{font-size:38px} .qs .ttl h2{font-size:20px}
   .qs .kq{padding:16px 22px;gap:12px} .qs .kqh{font-size:22px} .qs .kqh small{font-size:14px}
@@ -2468,7 +2491,7 @@ function qSlidesEl(rep,P){
   .qs .it .nm{white-space:normal;line-height:1.2;overflow:visible}
   .qs .clx{width:96px}
   .qs .kgrid{gap:20px} .qs .kq{min-width:0} .qs .kqh small{display:block;margin-top:2px}
-  .qs .kk{gap:8px} .qs .kk b{font-size:30px} .qs .kk>span:first-child{width:94px;flex:none}
+  .qs .kk{gap:8px} .qs .kk b{font-size:30px} .qs .kk>span:first-child{width:98px;flex:none;white-space:nowrap;font-size:14.5px} .qs .kgrid .cln{font-size:13px!important}
   .qs .kgrid .cln{flex-wrap:wrap;gap:2px 10px;font-size:14px!important} .qs .kgrid .cln span{white-space:nowrap} .qs .kk>div{min-width:0}
   </style>${S.map((x,k)=>`<div class="qi qs" data-slide="${k}" style="width:${W0}px;height:${Math.round(W0*9/16)}px;display:flex;flex-direction:column;overflow:hidden">
     ${x.cover?'':`<div class="sbar"><div><b>${esc(x.name)}</b><span>${esc(title)}${x.tag?' · '+esc(x.tag):''}</span></div>${qLogo(46)}</div>`}
@@ -2488,6 +2511,11 @@ function qFitSlide(s){
     w=Math.ceil(w*Math.min(1.05,Math.max(1.015,need))); s.style.width=w+'px'; s.style.height=Math.round(w*9/16)+'px'; }
   return w;
 }
+const qSlideW=N=>1120+Math.max(0,N-3)*260;
+/* live preview of the slides inside the panel */
+function qMountSlides(){ const rep=cur(), W0=qSlideW(Math.max(1,qShownN(rep))), el=qBuildSlides(rep);
+  el.querySelectorAll('[data-slide]').forEach(x=>{ x.style.marginBottom='22px'; x.style.boxShadow='0 0 0 1px #D5DEE7'; });
+  mountFit(el,W0); el.querySelectorAll('[data-slide]').forEach(x=>{ x.style.zoom=''; const w=qFitSlide(x); if(w>W0){ x.style.width=w+'px'; x.style.zoom=W0/w; } }); fitNow(); }
 const Q_SLIDE_PX={2:1920,3:2560,4:3840};
 async function qSlideImages(rep){
   const root=qBuildSlides(rep), out=[];
