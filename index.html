@@ -627,7 +627,7 @@ function load(){
   return seedState();
 }
 let saveTimer=null;
-const APP_VER='11';
+const APP_VER='12';
 const UI_KEY='rep937-ui-v1';
 const INFO_DEF={v:4,tpl:'A',cols:3,org1:'تجمع مكة المكرمة الصحي',org2:'الرعاية الصحية الأولية',org3:'تجربة المستفيد',title:'{اسم_التقرير}',sub:'{الفترة} ({تاريخ_الفترة}) مقارنةً بـ {الفترة_السابقة}',tag:'إجمالي البلاغات · رضا المستفيد · مستوى الخدمة',by:'عبدالعزيز الوذيناني',sup:'منيرة المزيني',date:'',logo:'',cTotal:'#1E88C8',cSat:'#7CB342',cSl:'#1B3A5C',navy:'#1B3A5C',cFoot:'#5378C0',t1:80,t2:90,prevBar:true,prevVal:true,chg:true,rank:true,strip:true,secSub:true,grpHead:true,satParts:true,q:3,font:'plex',fsize:100,kpis:[['total',true],['sat',true],['sl',true]],secs:{},order:[]};
 const RF_DEF={limit:0,hideGroups:[],cmp:'one'};
@@ -2249,6 +2249,7 @@ function qBuildInfo(rep){
   const lastQ=SHOW[SHOW.length-1];
   const hosOf=(qi,k)=>rep.qs[qi].hos.find(h=>fold(h.name)===k);
   hosNames.sort((a,b)=>{ const A=hosOf(lastQ,a.k), B=hosOf(lastQ,b.k); return ((B?qHos(B).count:0)||0)-((A?qHos(A).count:0)||0); });
+  { const off=new Set(Z.hosOff||[]); const kept=hosNames.filter(h=>!off.has(h.k)); hosNames.length=0; hosNames.push(...(Z.hosTop>0?kept.slice(0,Z.hosTop):kept)); }
   const QV=qi=>qi>0?rep.qs[qi-1].label:'';
   const qh=first=>`<div class="qh" style="${cols}"><div style="text-align:start">${first}</div>${SHOW.map(qi=>`<div class="qhc" style="--c:${qcol(qi)}">${esc(rep.qs[qi].label)}${qi>0?` <small>مقارنةً بـ ${esc(QV(qi))}</small>`:''}</div>`).join('')}</div>`;
   const sHead=hk=>`<div class="sh" style="${cols}"><div class="sn">${esc(hk.name)}</div>${SHOW.map(qi=>{ const h=hosOf(qi,hk.k); if(!h) return '<div class="sq"><span class="mut">—</span></div>'; const x=qHos(h), p=PM(qi)?.H.get(hk.k);
@@ -2321,13 +2322,13 @@ function qBuildInfo(rep){
 /* ---------- v10: the quarterly infographic has its own settings, separate from the weekly/hospital one ---------- */
 const QI_DEF={v:1,layout:'A',topC:3,topCat:5,clSort:'count',
   title:'التقرير الربعي لبلاغات 937',sub:'',org1:'تجمع مكة المكرمة الصحي',org2:'الرعاية الصحية الأولية',org3:'تجربة المستفيد',
-  by:'',sup:'',date:'',logo:'',font:'plex',fsize:100,navy:'#1B3A5C',cTotal:'#1E88C8',t1:80,t2:90,strip:true,q:3,paper:'a3'};
+  by:'',sup:'',date:'',logo:'',font:'plex',fsize:100,navy:'#1B3A5C',cTotal:'#1E88C8',t1:80,t2:90,strip:true,q:3,paper:'a3',hosTop:0,hosOff:[]};
 function fixQinfo(s){
   if(!s.qinfo || s.qinfo.v!==1){ const I=s.info||{}, old=(I.q)||{};
     s.qinfo={...QI_DEF, layout:old.layout||'A', topC:old.topC||3, topCat:old.topCat||5, clSort:old.clSort||'count', sub:old.sub||'',
       org1:I.org1??QI_DEF.org1, org2:I.org2??QI_DEF.org2, org3:I.org3??QI_DEF.org3, by:I.by||'', sup:I.sup||'', logo:I.logo||'', font:I.font||'plex', fsize:I.fsize||100,
       navy:I.navy||QI_DEF.navy, cTotal:I.cTotal||QI_DEF.cTotal, t1:I.t1||80, t2:I.t2||90, strip:I.strip!==false }; }
-  s.qinfo={...QI_DEF,...s.qinfo};
+  s.qinfo={...QI_DEF,...s.qinfo}; if(!Array.isArray(s.qinfo.hosOff)) s.qinfo.hosOff=[];
   return s;
 }
 const qCfg=()=>state.qinfo||QI_DEF;
@@ -2349,10 +2350,18 @@ function qiPanelBody(){
   const tog=(k,l)=>`<label><input type="checkbox" class="sw" data-qi="${k}" ${Z[k]?'checked':''}>${l}</label>`;
   if(qiTab==='tpl') return `<div class="tplpick">${[['A','طولي','المستشفيات تحت بعضها ثم التصانيف'],['B','عرضي بعمودين','المستشفيات في عمودين، والأقرب لصفحة واحدة'],['C','طولي برؤوس داكنة','رأس كحلي لكل مستشفى، وخلفية لكل مؤشر']].map(([k,t,d])=>`<label><input type="radio" name="qiL" data-qi="layout" value="${k}" ${Z.layout===k?'checked':''}><b>${t}</b><small>${d}</small></label>`).join('')}</div>
      <p class="hint" style="margin:0">الأرباع الظاهرة تُحدَّد من صفحة الإدخال بمفتاح «يظهر في الإنفوجرافيك» لكل ربع.</p>`;
-  if(qiTab==='secs') return `<div class="two"><div><label class="fld-lbl" for="qiC">المراكز تحت كل مستشفى</label><select class="inp" id="qiC" data-qi="topC">${opt([[2,'2'],[3,'3'],[4,'4'],[5,'5']],Z.topC)}</select></div><div><label class="fld-lbl" for="qiK">التصانيف في كل ربع</label><select class="inp" id="qiK" data-qi="topCat">${opt([[3,'3'],[5,'5'],[8,'8'],[10,'10']],Z.topCat)}</select></div></div>
+  if(qiTab==='secs'){ const rep=cur(), seen=new Map(); (rep.qs||[]).forEach(q=>q.hos.forEach(h=>{ const k=fold(h.name); if(k&&!seen.has(k)) seen.set(k,h.name); }));
+    const last=(rep.qs||[]).filter(q=>q.show).slice(-1)[0]; const cnt=k=>{ const h=last&&last.hos.find(x=>fold(x.name)===k); return h?qHos(h).count:null; };
+    const H=[...seen].sort((a,b)=>(cnt(b[0])??-1)-(cnt(a[0])??-1)), off=new Set(Z.hosOff||[]);
+    return `<div><span class="fld-lbl">القطاعات (المستشفيات) الظاهرة · ${H.length-H.filter(([k])=>off.has(k)).length} من ${H.length}</span>
+      <div class="cklist">${H.map(([k,nm])=>`<label><input type="checkbox" data-qihos="${esc(k)}" ${off.has(k)?'':'checked'}>${esc(nm)}<span class="mut" style="margin-inline-start:auto;font-size:11.5px">${cnt(k)==null?'':fmtInt(cnt(k))}</span></label>`).join('')||'<span class="mut">لا توجد قطاعات بعد</span>'}</div>
+      <div class="icfg-acts" style="margin-top:6px"><button type="button" class="btn sm" data-qiact="hos-all">الكل</button><button type="button" class="btn sm ghost" data-qiact="hos-none">لا شيء</button></div></div>
+     <div><label class="fld-lbl" for="qiH">عدد القطاعات</label><select class="inp" id="qiH" data-qi="hosTop">${opt([[0,'كل المحددة'],[3,'أعلى 3'],[5,'أعلى 5'],[8,'أعلى 8'],[10,'أعلى 10']],Z.hosTop)}</select></div>
+     <p class="hint" style="margin:0">«أعلى» حسب بلاغات آخر ربع ظاهر، من بين القطاعات المحددة. بطاقات الأرباع والتصانيف في الأعلى تبقى لكل القطاعات.</p>
+     `+`<div class="two"><div><label class="fld-lbl" for="qiC">المراكز تحت كل مستشفى</label><select class="inp" id="qiC" data-qi="topC">${opt([[2,'2'],[3,'3'],[4,'4'],[5,'5']],Z.topC)}</select></div><div><label class="fld-lbl" for="qiK">التصانيف في كل ربع</label><select class="inp" id="qiK" data-qi="topCat">${opt([[3,'3'],[5,'5'],[8,'8'],[10,'10']],Z.topCat)}</select></div></div>
      <div><label class="fld-lbl" for="qiS">ترتيب مدة الإغلاق</label><select class="inp" id="qiS" data-qi="clSort">${opt([['count','عدد البلاغات من الأعلى'],['over','عدد «أكثر من 24 ساعة» من الأعلى']],Z.clSort)}</select></div>
      <p class="hint" style="margin:0">البلاغات من الأعلى إلى الأدنى، والرضا من الأقل إلى الأعلى. والمستشفيات مرتبة حسب بلاغات آخر ربع ظاهر.</p>
-     <div class="togs">${tog('strip','حذف «مركز صحي» من بداية أسماء المراكز')}</div>`;
+     <div class="togs">${tog('strip','حذف «مركز صحي» من بداية أسماء المراكز')}</div>`; }
   if(qiTab==='head') return `${fld('title','العنوان الرئيسي','التقرير الربعي لبلاغات 937')}
      ${fld('sub','السطر تحت العنوان','تلقائي: أسماء الأرباع الظاهرة')}
      <p class="hint" style="margin:0">يمكن استخدام {اسم_التقرير} في العنوان ليُكتب اسم التقرير.</p>
@@ -2393,8 +2402,10 @@ function qiLogoPick(e){ const f=e.target.files[0]; e.target.value=''; if(!f) ret
   img.onload=()=>{ const h=Math.min(240,img.naturalHeight), w=Math.round(img.naturalWidth*h/img.naturalHeight); const cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h);
     state.qinfo.logo=cv.toDataURL('image/png'); URL.revokeObjectURL(url); save(); qiRedraw(); refreshInfo(); qDirtyHint(); toast('أُضيف الشعار'); };
   img.onerror=()=>{ URL.revokeObjectURL(url); toast('تعذرت قراءة الصورة'); }; img.src=url; }
-function qiInput(t){ const d=t.dataset; if(d.qi==null) return false; const Z=state.qinfo;
-  let v=t.type==='checkbox'?t.checked:t.value; if(['topC','topCat','t1','t2','q','fsize'].includes(d.qi)) v=+v; Z[d.qi]=v; save();
+function qiInput(t){ const d=t.dataset;
+  if(d.qihos!=null){ const off=new Set(state.qinfo.hosOff||[]); t.checked?off.delete(d.qihos):off.add(d.qihos); state.qinfo.hosOff=[...off]; save(); qiRedraw(); refreshInfo(); qDirtyHint(); return true; }
+  if(d.qi==null) return false; const Z=state.qinfo;
+  let v=t.type==='checkbox'?t.checked:t.value; if(['topC','topCat','t1','t2','q','fsize','hosTop'].includes(d.qi)) v=+v; Z[d.qi]=v; save();
   if(d.qi==='layout'){ renderBody(); return true; }
   if(d.qi==='font'){ ensureFont(v).then(refreshInfo); qDirtyHint(); return true; }
   if(d.qi==='q'||d.qi==='paper'){ qDirtyHint(); return true; }
@@ -2405,6 +2416,7 @@ function qiClick(b){ const d=b.dataset;
   if(d.qiact==='save'){ qSnap=JSON.stringify(state.qinfo); saveNow(); qDirtyHint(); return true; }
   if(d.qiact==='cancel'){ if(!qDirty()){ toast('لا توجد تغييرات'); return true; } state.qinfo=JSON.parse(qSnap); save(); renderBody(); toast('أُلغيت التغييرات'); return true; }
   if(d.qiact==='reset'){ dialog({title:'إرجاع إعدادات الإنفوجرافيك الربعي؟', body:'ترجع إعدادات الإنفوجرافيك الربعي إلى الافتراضي، ويبقى الشعار. لا يتأثر الإنفوجرافيك الآخر. يمكنك التراجع.', actions:[{label:'إرجاع',cls:'primary',run:()=>{ const lg=state.qinfo.logo; state.qinfo={...QI_DEF,logo:lg}; save(); renderBody(); }},{label:'إلغاء'}]}); return true; }
+  if(d.qiact==='hos-all'||d.qiact==='hos-none'){ if(d.qiact==='hos-all') state.qinfo.hosOff=[]; else { const all=new Set(); cur().qs.forEach(q=>q.hos.forEach(h=>all.add(fold(h.name)))); state.qinfo.hosOff=[...all]; } save(); qiRedraw(); refreshInfo(); qDirtyHint(); return true; }
   if(d.qiact==='logo-rm'){ state.qinfo.logo=''; save(); qiRedraw(); refreshInfo(); qDirtyHint(); return true; }
   return false; }
 
@@ -2464,13 +2476,49 @@ function qParseSheet(name, grid){
 }
 function qInfoXlsxSheet(rep){ return qSheetXml(rep); }
 
-/* ---------- import from the database (bridge v2) ---------- */
+/* ---------- import from the database: new report, or merge into an existing quarterly report ---------- */
+const qHas=q=>!!(q && (q.hos.length || q.cats.length || q.sum.count!=null));
+function qFind(L,q){ const o=qOrd(q); return L.find(x=> o && qOrd(x)===o) || L.find(x=>fold(x.label)===fold(q.label)); }
+// يحدّث أعداد البلاغات ومدة الإغلاق من القاعدة، ويُبقي الرضا والأسماء والإعدادات وكل صف أضفته يدوياً
+function qMergeInto(T, inc){
+  const st={added:[],updated:[],kept:[]};
+  const upd=(t,s)=>{ t.count=s.count; t.over=s.over; t.within=s.within; };
+  inc.qs.forEach(iq=>{
+    const tq=qFind(T.qs,iq);
+    if(!tq){ if(qHas(iq)||!T.qs.length){ T.qs.push(JSON.parse(JSON.stringify(iq))); st.added.push(iq.label); } return; }
+    if(!qHas(iq)){ st.kept.push(tq.label); return; }
+    if(iq.date) tq.date=iq.date;
+    tq.sum.count=iq.sum.count; tq.sum.over=iq.sum.over; tq.sum.within=iq.sum.within;
+    iq.hos.forEach(h=>{ let th=tq.hos.find(x=>fold(x.name)===fold(h.name));
+      if(!th){ th={...qRow(h.name),centers:[]}; tq.hos.push(th); } upd(th,h);
+      h.centers.forEach(c=>{ let tc=th.centers.find(x=>fold(x.name)===fold(c.name)); if(!tc){ tc=qRow(c.name); th.centers.push(tc); } upd(tc,c); }); });
+    iq.cats.forEach(c=>{ let tc=tq.cats.find(x=>fold(x.name)===fold(c.name)); if(!tc){ tc=qRow(c.name); tq.cats.push(tc); } upd(tc,c); });
+    st.updated.push(tq.label); });
+  T.source='db'; normQ(T); return st;
+}
+function qmWire(r){ const sel=document.getElementById('qmT'), P=document.getElementById('qmP'); if(!sel) return;
+      const prev=()=>{ const T=state.reports.find(x=>x.id===sel.value); if(!T){ P.innerHTML='يُضاف تقريراً جديداً، وتبقى تقاريرك كما هي.'; return; }
+        const add=[], up=[], keep=[]; r.qs.forEach(q=>{ const t=qFind(T.qs,q); if(!t){ if(qHas(q)) add.push(q.label); } else if(qHas(q)) up.push(t.label); else keep.push(t.label); });
+        P.innerHTML=`<b>يُضاف:</b> ${add.length?esc(add.join('، ')):'لا شيء'}<br><b>تتحدّث أعداد البلاغات ومدة الإغلاق في:</b> ${up.length?esc(up.join('، ')):'لا شيء'}<br>${keep.length?`<b>يبقى كما هو:</b> ${esc(keep.join('، '))}<br>`:''}ويبقى متوسط الرضا وأسماء الأرباع وإعداد «يظهر في الإنفوجرافيك»، وكل صف أضفته يدوياً.`; };
+      sel.addEventListener('change',prev); prev(); }
 function qImportBridge(data){
-  const r=normQ({...JSON.parse(JSON.stringify(data.report)), id:uid(), source:'db', type:'quarterly'});
+  const inc=JSON.parse(JSON.stringify(data.report)); (inc.qs||[]).forEach((q,i)=>{ q._n=(data.counts||[])[i]||0; });
+  const r=normQ({...inc, id:uid(), source:'db', type:'quarterly'});
   let base=r.name||'التقرير الربعي', name=base, n=2; const names=new Set(state.reports.map(x=>x.name)); while(names.has(name)) name=`${base} (${n++})`; r.name=name;
-  dialog({title:'إضافة تقرير ربعي من القاعدة', html:`<p>«${esc(name)}»</p><ul>${r.qs.map((q,i)=>`<li>${esc(q.label)}: ${(data.counts||[])[i]?fmtInt(data.counts[i])+' بلاغ':'فارغ للتعبئة اليدوية'}${q.show?'':' · للمقارنة فقط'}</li>`).join('')}</ul>
-    <p>تصل أعداد البلاغات${data.dur?' ومدة الإغلاق':''} لكل قطاع ومركز وتصنيف. ${data.dur?'':'لم يكن في القاعدة «تاريخ الحل» فبقيت مدة الإغلاق للتعبئة. '}متوسط الرضا لا يوجد في القاعدة، فعبّئه في صفحة الإدخال لكل ربع.</p>`,
-    actions:[{label:'إضافة التقرير',cls:'primary',run:()=>{ state.reports.push(r); state.current=state.reports.length-1; view='edit'; qIdx=0; save(); renderAll(); toast('أُضيف التقرير الربعي'); }},{label:'إلغاء'}]});
+  const QR=state.reports.filter(x=>x.type==='quarterly');
+  const def=cur()&&cur().type==='quarterly'?cur().id:(QR.length?QR[QR.length-1].id:'');
+  const list=`<ul>${r.qs.map(q=>`<li>${esc(q.label)}: ${q._n?fmtInt(q._n)+' بلاغ':'فارغ'}${q.show?'':' · للمقارنة فقط'}</li>`).join('')}</ul>`;
+  dialog({title:'استيراد تقرير ربعي من القاعدة', html:`${list}
+    <div class="field"><label for="qmT">أين أضعه؟</label><select class="inp" id="qmT"><option value="">تقرير ربعي جديد «${esc(name)}»</option>${QR.map(x=>`<option value="${x.id}" ${x.id===def?'selected':''}>دمج مع «${esc(x.name)}» (${x.qs.length} ربع)</option>`).join('')}</select></div>
+    <div id="qmP" class="hint" style="margin:0"></div>
+    <p class="hint">${data.dur?'':'لم يكن في القاعدة «تاريخ الحل» فبقيت مدة الإغلاق للتعبئة. '}متوسط الرضا لا يوجد في القاعدة، فعبّئه في صفحة الإدخال للأرباع الجديدة.</p>`,
+
+    actions:[{label:'تنفيذ',cls:'primary',run:()=>{ const id=(document.getElementById('qmT')||{}).value||'';
+      if(!id){ r.qs.forEach(q=>delete q._n); state.reports.push(r); state.current=state.reports.length-1; view='edit'; qIdx=0; save(); renderAll(); toast('أُضيف التقرير الربعي'); return; }
+      const T=state.reports.find(x=>x.id===id); const st=qMergeInto(T,{qs:r.qs.map(q=>{ const c=JSON.parse(JSON.stringify(q)); delete c._n; return c; })});
+      state.current=state.reports.indexOf(T); view='edit'; qIdx=st.added.length?Math.max(0,T.qs.findIndex(q=>q.label===st.added[st.added.length-1])):qIdx; save(); renderAll();
+      toast(`دُمج: ${st.added.length} ربع جديد، و${st.updated.length} ربع تحدّث`); }},{label:'إلغاء'}]});
+  setTimeout(()=>{ const sel=document.getElementById('qmT'); if(sel&&!sel._w){ sel._w=1; qmWire(r); } },0);
 }
 
 /* ---------- boot ---------- */
