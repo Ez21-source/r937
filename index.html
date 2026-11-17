@@ -483,6 +483,8 @@ table.qt th:nth-child(n+3){min-width:96px}
           <button type="button" data-exp="info-xlsx"><span>إنفوجرافيك Excel</span><span>التقرير الحالي</span></button>
           <button type="button" data-exp="qinfo-png"><span>الإنفوجرافيك الربعي · صورة واضحة</span><span>التقرير الحالي</span></button>
           <button type="button" data-exp="qinfo-pdf"><span>الإنفوجرافيك الربعي · PDF واضح</span><span>التقرير الحالي</span></button>
+          <button type="button" data-exp="qinfo-pptx"><span>الإنفوجرافيك الربعي · عرض PowerPoint</span><span>شرائح عرضية بخط كبير</span></button>
+          <button type="button" data-exp="qinfo-slides"><span>الإنفوجرافيك الربعي · صور الشرائح</span><span>ملف مضغوط فيه صورة لكل شريحة</span></button>
           <button type="button" data-exp="qinfo-xlsx"><span>التقرير الربعي · Excel</span><span>التقرير الحالي</span></button>
         </div>
       </div>
@@ -627,7 +629,7 @@ function load(){
   return seedState();
 }
 let saveTimer=null;
-const APP_VER='12';
+const APP_VER='13';
 const UI_KEY='rep937-ui-v1';
 const INFO_DEF={v:4,tpl:'A',cols:3,org1:'تجمع مكة المكرمة الصحي',org2:'الرعاية الصحية الأولية',org3:'تجربة المستفيد',title:'{اسم_التقرير}',sub:'{الفترة} ({تاريخ_الفترة}) مقارنةً بـ {الفترة_السابقة}',tag:'إجمالي البلاغات · رضا المستفيد · مستوى الخدمة',by:'عبدالعزيز الوذيناني',sup:'منيرة المزيني',date:'',logo:'',cTotal:'#1E88C8',cSat:'#7CB342',cSl:'#1B3A5C',navy:'#1B3A5C',cFoot:'#5378C0',t1:80,t2:90,prevBar:true,prevVal:true,chg:true,rank:true,strip:true,secSub:true,grpHead:true,satParts:true,q:3,font:'plex',fsize:100,kpis:[['total',true],['sat',true],['sl',true]],secs:{},order:[]};
 const RF_DEF={limit:0,hideGroups:[],cmp:'one'};
@@ -1093,7 +1095,7 @@ const stamp = ()=>{ const d=new Date(); return `${d.getFullYear()}-${String(d.ge
 
 async function runExport(kind){
   const btn=document.getElementById('btnExport'); btn.disabled=true; const old=btn.innerHTML; btn.lastChild.textContent=' جارٍ التجهيز…';
-  if(/png|pdf/.test(kind)) toast('جارٍ رسم الصورة بجودة عالية…');
+  if(/png|pdf|pptx|slides/.test(kind)) toast('جارٍ رسم الصورة بجودة عالية…');
   try{
     if(kind==='xlsx-all') await saveFile(`تقارير-البلاغات-${stamp()}.xlsx`, await buildXlsx(state.reports));
     if(kind==='xlsx-one') await saveFile(`${safeName(cur().name)}-${stamp()}.xlsx`, await buildXlsx([cur()]));
@@ -1101,6 +1103,8 @@ async function runExport(kind){
     else if(/^qinfo-/.test(kind)){ toast('افتح تقريراً ربعياً أولاً'); return; }
     if(kind==='qinfo-png') await saveFile(`${safeName(cur().name)}-إنفوجرافيك-ربعي.png`, await buildQPng(cur()));
     if(kind==='qinfo-pdf') await saveFile(`${safeName(cur().name)}-إنفوجرافيك-ربعي.pdf`, await buildQPdf(cur()));
+    if(kind==='qinfo-pptx') await saveFile(`${safeName(cur().name)}-عرض-ربعي.pptx`, await buildQPptx(cur()));
+    if(kind==='qinfo-slides') await saveFile(`${safeName(cur().name)}-شرائح-ربعية.zip`, await buildQSlidesZip(cur()));
     if(kind==='qinfo-xlsx') await saveFile(`${safeName(cur().name)}-${stamp()}.xlsx`, await buildXlsx([cur()]));
     if(kind==='png-one') await saveFile(`${safeName(cur().name)}.png`, await buildPng(cur()));
     if(kind==='pdf-one') await saveFile(`${safeName(cur().name)}.pdf`, await buildPdf([cur()]));
@@ -2218,7 +2222,7 @@ function qChg(a,b,kind){ // kind: count | sat | over(نسبة أكثر من 24 �
 }
 
 /* ---------- infographic ---------- */
-function qBuildInfo(rep){
+function qBuildInfo(rep,opt){
   const Z=qCfg(), c=Z, land=Z.layout==='B', dark=Z.layout==='C';
   const SHOW=rep.qs.map((q,i)=>i).filter(i=>rep.qs[i].show);
   const N=Math.max(1,SHOW.length), W=qiWidth(N,Z.layout);
@@ -2265,7 +2269,7 @@ function qBuildInfo(rep){
   const sub=Z.sub || `${SHOW.map(i=>rep.qs[i].label).join(' · ')} · كل ربع مقارنةً بالربع الذي قبله`;
   const title=igTok(c.title||'{اسم_التقرير}',rep);
   const el=document.createElement('div');
-  el.innerHTML=`<style>
+  const css=`
   .qi{width:${W}px;background:#F6F8FB;font-family:${qFontStack()};direction:rtl;color:#1C2B39;line-height:1.45}
   .qi .hd{display:grid;grid-template-columns:1fr 2.2fr 1fr;align-items:center;padding:26px 36px 18px;background:#fff;border-bottom:4px solid ${NAVY}}
   .qi .org{font-size:15px;line-height:1.6;color:${NAVY}} .qi .org b{display:block;font-size:17px} .qi .org span{color:${c.cTotal||'#1E88C8'}}
@@ -2307,9 +2311,12 @@ function qBuildInfo(rep){
   .qi .mut{color:#9AA6B2}
   .qi .ft{display:flex;justify-content:space-between;align-items:center;background:${NAVY};color:#fff;padding:14px 36px;font-size:14px;gap:16px}
   .qi .ft small{opacity:.75;margin-inline-end:6px}
-  </style>
-  <div class="qi"><div class="hd"><div class="org">${c.org1?`<b>${esc(c.org1)}</b>`:''}${c.org2?`<span>${esc(c.org2)}</span><br>`:''}${esc(c.org3||'')}</div>
-     <div class="ttl"><h1>${esc(title)}</h1><h2>${esc(sub)}</h2></div><div class="lg">${qLogo(72)}</div></div>
+  `;
+  const hd=`<div class="hd"><div class="org">${c.org1?`<b>${esc(c.org1)}</b>`:''}${c.org2?`<span>${esc(c.org2)}</span><br>`:''}${esc(c.org3||'')}</div>
+     <div class="ttl"><h1>${esc(title)}</h1><h2>${esc(sub)}</h2></div><div class="lg">${qLogo(72)}</div></div>`;
+  if(opt&&opt.slides) return qSlidesEl(rep,{Z,NAVY,N,css,hd,kpi,key,qh,sHead,card,catCard,hosNames,title,cT:c.cTotal||'#1E88C8'});
+  el.innerHTML=`<style>${css}</style>
+  <div class="qi">${hd}
    <div style="padding:18px 30px 0">${kpi}</div>
    <div style="padding:12px 30px 0">${key}</div>
    ${land?`<div style="padding:8px 30px 0;display:grid;grid-template-columns:1fr 1fr;gap:14px"><div class="card" style="padding:8px 14px">${qh('المستشفى')}</div><div class="card" style="padding:8px 14px">${qh('المستشفى')}</div></div>`
@@ -2376,6 +2383,8 @@ function qiPanelBody(){
   if(qiTab==='exp') return `<div class="explist">
       <button type="button" class="btn" data-pexp="qinfo-png"><b>صورة PNG واضحة</b><small>بنفس شكل المعاينة وبالوضوح المختار أدناه</small></button>
       <button type="button" class="btn" data-pexp="qinfo-pdf"><b>PDF واضح</b><small>صفحة واحدة بحجم الورقة المختار، جاهزة للطباعة والإرسال</small></button>
+      <button type="button" class="btn" data-pexp="qinfo-pptx"><b>عرض PowerPoint</b><small>شرائح عرضية 16:9: الملخص، ثم القطاعات، ثم كل مستشفى في شريحة، ثم التصانيف. الخط كبير وواضح عند العرض</small></button>
+      <button type="button" class="btn" data-pexp="qinfo-slides"><b>صور الشرائح</b><small>نفس الشرائح كصور PNG في ملف مضغوط، لإدراجها في عرضك أو Google Slides</small></button>
       <button type="button" class="btn" data-pexp="qinfo-xlsx"><b>Excel</b><small>كل أرقام الأرباع، ويمكن تعديله وإعادة استيراده</small></button></div>
     <div><label class="fld-lbl" for="qi_q">وضوح الصورة وPDF</label><select class="inp" id="qi_q" data-qi="q">${opt([[2,'عادي (×2)'],[3,'عالٍ (×3) — موصى به'],[4,'عالٍ جداً (×4)']],Z.q)}</select></div>
     <div><label class="fld-lbl" for="qi_paper">حجم صفحة PDF</label><select class="inp" id="qi_paper" data-qi="paper">${opt([['a3','A3'],['a4','A4'],['fit','بحجم الإنفوجرافيك (بلا هوامش)']],Z.paper)}</select></div>
@@ -2391,7 +2400,7 @@ function renderQInfoPage(){
       <div class="ptabs2" role="tablist">${tabs.map(([k,l])=>`<button type="button" role="tab" data-qitab="${k}" aria-selected="${k===qiTab}">${l}</button>`).join('')}</div>
       <div class="icfg-b" id="qiBody">${qiPanelBody()}</div>
       <div class="igp-f"><button type="button" class="btn sm primary" data-qiact="save"><span class="dirty-dot"></span>اعتماد</button><button type="button" class="btn sm" data-qiact="cancel">إلغاء التغييرات</button><button type="button" class="btn sm ghost" data-qiact="reset">الافتراضي</button><span style="flex:1"></span>
-        <button type="button" class="btn sm primary" data-pexp="qinfo-png">${IC.img||''}صورة واضحة</button><button type="button" class="btn sm primary" data-pexp="qinfo-pdf">PDF واضح</button></div></section>
+        <button type="button" class="btn sm primary" data-pexp="qinfo-png">${IC.img||''}صورة واضحة</button><button type="button" class="btn sm primary" data-pexp="qinfo-pdf">PDF واضح</button><button type="button" class="btn sm primary" data-pexp="qinfo-pptx">PowerPoint</button></div></section>
     <div style="min-width:0"><div class="fitbox" style="margin-top:0"><div class="fitwrap" id="fitwrap"></div></div><p class="hint">المعاينة تتحدث مباشرة. الأرقام من صفحة «إدخال البيانات».</p></div></div>`;
   mountFit(buildInfo(rep),infoW(rep)); qDirtyHint(); qiWire();
   if(Z.font && Z.font!=='plex') ensureFont(Z.font).then(()=>{ if(view==='info'&&cur().type==='quarterly') refreshInfo(); });
@@ -2421,6 +2430,125 @@ function qiClick(b){ const d=b.dataset;
   return false; }
 
 /* sharp exports */
+/* ---------- v13: presentation slides (16:9) — the tall infographic split into readable landscape slides ---------- */
+function qSlidesEl(rep,P){
+  const {Z,NAVY,N,css,hd,kpi,key,qh,sHead,card,catCard,hosNames,title,cT}=P;
+  const W0=1120+Math.max(0,N-3)*260;
+  const S=[];
+  S.push({cover:true,body:`${hd}<div style="padding:22px 30px 0">${kpi}</div><div style="padding:16px 30px 0">${key}</div>`});
+  const per=5, parts=Math.ceil(hosNames.length/per);
+  for(let i=0;i<hosNames.length;i+=per) S.push({name:'ملخص القطاعات'+(parts>1?` (${i/per+1} من ${parts})`:''),
+    body:`<div class="card" style="padding:8px 14px">${qh('القطاع')}</div><div class="card sc" style="margin-top:10px;display:grid;gap:6px">${hosNames.slice(i,i+per).map(sHead).join('')}</div>`});
+  hosNames.forEach((hk,i)=>S.push({name:hk.name,tag:`القطاع ${i+1} من ${hosNames.length}`,
+    body:`<div class="card" style="padding:8px 14px">${qh('المراكز')}</div><div style="margin-top:10px">${card(hk)}</div>`}));
+  S.push({name:'التصانيف',tag:`أعلى ${Z.topCat} في كل ربع`,body:`<div class="card" style="padding:8px 14px">${qh('التصنيف')}</div><div style="margin-top:10px">${catCard}</div>`});
+  const foot=(k)=>`<div class="sft"><span>${esc(Z.org1||'')}${Z.org3?' · '+esc(Z.org3):''}</span><span>${esc(Z.date||igToday())}</span><span>${k} / ${S.length}</span></div>`;
+  const el=document.createElement('div');
+  el.innerHTML=`<style>${css}
+  .qs{box-sizing:border-box}
+  .qs .sbar{display:flex;align-items:center;justify-content:space-between;gap:16px;background:#fff;border-bottom:4px solid ${NAVY};padding:12px 30px}
+  .qs .sbar b{display:block;font-size:27px;color:${NAVY};font-weight:700;line-height:1.25} .qs .sbar span{font-size:15px;color:${cT}}
+  .qs .sbody{flex:1;min-height:0;overflow:hidden;padding:14px 30px}
+  .qs .sbody.cv{padding:0 0 10px}
+  .qs .sft{display:flex;justify-content:space-between;align-items:center;background:${NAVY};color:#fff;padding:8px 30px;font-size:14px}
+  .qs .hd{padding:30px 36px 22px} .qs .ttl h1{font-size:38px} .qs .ttl h2{font-size:20px}
+  .qs .kq{padding:16px 22px;gap:12px} .qs .kqh{font-size:22px} .qs .kqh small{font-size:14px}
+  .qs .kk{font-size:16px} .qs .kk>span:first-child{width:118px} .qs .kk b{font-size:34px} .qs .kk .pl{font-size:14px}
+  .qs .kgrid .cln{font-size:14px!important}
+  .qs .keyb{font-size:14.5px} .qs .keyb .pl{font-size:13px}
+  .qs .qh{font-size:17px} .qs .qh small{font-size:13px}
+  .qs .sn{font-size:23px} .qs .sh{padding:10px 12px}
+  .qs .sq{font-size:14px;gap:4px} .qs .sq span:first-child{width:58px} .qs .sq b{font-size:18px} .qs .sq em{font-size:13px}
+  .qs .ml{font-size:16px}
+  .qs .it{grid-template-columns:26px minmax(0,1fr) auto auto;font-size:16px;min-height:30px;gap:8px}
+  .qs .it .v{font-size:17px} .qs .rk{width:24px;height:24px;font-size:13px}
+  .qs .pl{font-size:13px;padding:1px 6px}
+  .qs .clx .cln{font-size:13px}
+  .qs .tc .it .nm{font-size:15px}
+  .qs .it .nm{white-space:normal;line-height:1.2;overflow:visible}
+  .qs .clx{width:96px}
+  .qs .kgrid{gap:20px} .qs .kq{min-width:0} .qs .kqh small{display:block;margin-top:2px}
+  .qs .kk{gap:8px} .qs .kk b{font-size:30px} .qs .kk>span:first-child{width:94px;flex:none}
+  .qs .kgrid .cln{flex-wrap:wrap;gap:2px 10px;font-size:14px!important} .qs .kgrid .cln span{white-space:nowrap} .qs .kk>div{min-width:0}
+  </style>${S.map((x,k)=>`<div class="qi qs" data-slide="${k}" style="width:${W0}px;height:${Math.round(W0*9/16)}px;display:flex;flex-direction:column;overflow:hidden">
+    ${x.cover?'':`<div class="sbar"><div><b>${esc(x.name)}</b><span>${esc(title)}${x.tag?' · '+esc(x.tag):''}</span></div>${qLogo(46)}</div>`}
+    <div class="sbody${x.cover?' cv':''}">${x.body}</div>${foot(k+1)}</div>`).join('')}`;
+  return el;
+}
+function qBuildSlides(rep){
+  const el=qBuildInfo(rep,{slides:true}); el.dataset.font=qCfg().font||'plex'; el.style.background='#fff';
+  const k=(+qCfg().fsize||100)/100;
+  if(k!==1){ const st=el.querySelector('style'); if(st) st.textContent=st.textContent.replace(/font-size:\s*([\d.]+)px/g,(m,v)=>`font-size:${(+v*k).toFixed(1)}px`); }
+  return el;
+}
+/* widen a slide (keeping 16:9) until its content fits, so nothing is cut */
+function qFitSlide(s){
+  const b=s.querySelector('.sbody'); let w=s.offsetWidth;
+  for(let i=0;i<40;i++){ const need=b.scrollHeight/Math.max(1,b.clientHeight); if(need<=1.005) break;
+    w=Math.ceil(w*Math.min(1.05,Math.max(1.015,need))); s.style.width=w+'px'; s.style.height=Math.round(w*9/16)+'px'; }
+  return w;
+}
+const Q_SLIDE_PX={2:1920,3:2560,4:3840};
+async function qSlideImages(rep){
+  const root=qBuildSlides(rep), out=[];
+  return withNode(root, async n=>{
+    const ios=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+    let px=Q_SLIDE_PX[+qCfg().q||3]||2560; if(ios) px=Math.min(px,2560);
+    root.style.width='8000px';
+    for(const s of n.querySelectorAll('[data-slide]')){ const w=qFitSlide(s);
+      const cv=await snap(s,px/w); out.push({blob:await canvasBlob(cv),w:cv.width,h:cv.height}); cv.width=cv.height=0; }
+    return out; });
+}
+async function buildQSlidesZip(rep){
+  const JSZip=await lib('jszip'), z=new JSZip(), imgs=await qSlideImages(rep);
+  imgs.forEach((x,i)=>z.file(`شريحة-${String(i+1).padStart(2,'0')}.png`,x.blob));
+  return z.generateAsync({type:'blob',mimeType:'application/zip'});
+}
+async function buildQPptx(rep){
+  const JSZip=await lib('jszip'), imgs=await qSlideImages(rep), z=new JSZip();
+  const X=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const H='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+  const NS='xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"';
+  const R='http://schemas.openxmlformats.org/officeDocument/2006/relationships/';
+  const rels=list=>H+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${list.map(([id,t,tg])=>`<Relationship Id="${id}" Type="${t.startsWith('http')?t:R+t}" Target="${tg}"/>`).join('')}</Relationships>`;
+  const grp='<p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>';
+  const CX=12192000, CY=6858000, n=imgs.length, title=igTok(qCfg().title||'التقرير الربعي',rep);
+  z.file('[Content_Types].xml',H+`<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/>
+<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>
+<Override PartName="/ppt/presProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presProps+xml"/>
+<Override PartName="/ppt/viewProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.viewProps+xml"/>
+<Override PartName="/ppt/tableStyles.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.tableStyles+xml"/>
+<Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>
+<Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>
+<Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>
+${imgs.map((x,i)=>`<Override PartName="/ppt/slides/slide${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`).join('')}
+<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>`);
+  z.file('_rels/.rels',rels([['rId1','officeDocument','ppt/presentation.xml'],['rId2','http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties','docProps/core.xml'],['rId3','extended-properties','docProps/app.xml']]));
+  const now=new Date().toISOString().replace(/\.\d+Z$/,'Z');
+  z.file('docProps/core.xml',H+`<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>${X(title)}</dc:title><dc:creator>نموذج تقرير بلاغات 937</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">${now}</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">${now}</dcterms:modified></cp:coreProperties>`);
+  z.file('docProps/app.xml',H+`<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>Microsoft Office PowerPoint</Application><Slides>${n}</Slides><PresentationFormat>On-screen Show (16:9)</PresentationFormat></Properties>`);
+  z.file('ppt/presentation.xml',H+`<p:presentation ${NS} saveSubsetFonts="1"><p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst><p:sldIdLst>${imgs.map((x,i)=>`<p:sldId id="${256+i}" r:id="rId${10+i}"/>`).join('')}</p:sldIdLst><p:sldSz cx="${CX}" cy="${CY}"/><p:notesSz cx="6858000" cy="9144000"/></p:presentation>`);
+  z.file('ppt/_rels/presentation.xml.rels',rels([['rId1','slideMaster','slideMasters/slideMaster1.xml'],['rId2','theme','theme/theme1.xml'],['rId3','presProps','presProps.xml'],['rId4','viewProps','viewProps.xml'],['rId5','tableStyles','tableStyles.xml'],...imgs.map((x,i)=>[`rId${10+i}`,'slide',`slides/slide${i+1}.xml`])]));
+  z.file('ppt/presProps.xml',H+`<p:presentationPr ${NS}/>`);
+  z.file('ppt/viewProps.xml',H+`<p:viewPr ${NS}><p:normalViewPr><p:restoredLeft sz="15620"/><p:restoredTop sz="94660"/></p:normalViewPr><p:gridSpacing cx="76200" cy="76200"/></p:viewPr>`);
+  z.file('ppt/tableStyles.xml',H+`<a:tblStyleLst xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" def="{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}"/>`);
+  z.file('ppt/slideMasters/slideMaster1.xml',H+`<p:sldMaster ${NS}><p:cSld><p:bg><p:bgRef idx="1001"><a:schemeClr val="bg1"/></p:bgRef></p:bg><p:spTree>${grp}</p:spTree></p:cSld><p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/><p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst></p:sldMaster>`);
+  z.file('ppt/slideMasters/_rels/slideMaster1.xml.rels',rels([['rId1','slideLayout','../slideLayouts/slideLayout1.xml'],['rId2','theme','../theme/theme1.xml']]));
+  z.file('ppt/slideLayouts/slideLayout1.xml',H+`<p:sldLayout ${NS} type="blank" preserve="1"><p:cSld name="Blank"><p:spTree>${grp}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>`);
+  z.file('ppt/slideLayouts/_rels/slideLayout1.xml.rels',rels([['rId1','slideMaster','../slideMasters/slideMaster1.xml']]));
+  const clr=(n,v)=>`<a:${n}><a:srgbClr val="${v}"/></a:${n}>`, fill='<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>';
+  z.file('ppt/theme/theme1.xml',H+`<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="R937"><a:themeElements><a:clrScheme name="R937"><a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1><a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1>${clr('dk2','1B3A5C')}${clr('lt2','EEF4FA')}${clr('accent1','1E88C8')}${clr('accent2','2E9E5B')}${clr('accent3','E39B2D')}${clr('accent4','B3322D')}${clr('accent5','4FA3DA')}${clr('accent6','9CC9E8')}${clr('hlink','1E88C8')}${clr('folHlink','6B7B8A')}</a:clrScheme>
+<a:fontScheme name="R937"><a:majorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface="Arial"/></a:majorFont><a:minorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface="Arial"/></a:minorFont></a:fontScheme>
+<a:fmtScheme name="R937"><a:fillStyleLst>${fill}${fill}${fill}</a:fillStyleLst><a:lnStyleLst><a:ln w="6350">${fill}</a:ln><a:ln w="12700">${fill}</a:ln><a:ln w="19050">${fill}</a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst>${fill}${fill}${fill}</a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>`);
+  imgs.forEach((x,i)=>{
+    const s=Math.min(CX/x.w,CY/x.h), w=Math.round(x.w*s), h=Math.round(x.h*s);
+    z.file(`ppt/media/image${i+1}.png`,x.blob);
+    z.file(`ppt/slides/slide${i+1}.xml`,H+`<p:sld ${NS}><p:cSld><p:spTree>${grp}<p:pic><p:nvPicPr><p:cNvPr id="2" name="شريحة ${i+1}" descr="${X(title)}"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="rId2"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="${Math.round((CX-w)/2)}" y="${Math.round((CY-h)/2)}"/><a:ext cx="${w}" cy="${h}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`);
+    z.file(`ppt/slides/_rels/slide${i+1}.xml.rels`,rels([['rId1','slideLayout','../slideLayouts/slideLayout1.xml'],['rId2','image',`../media/image${i+1}.png`]]));
+  });
+  return z.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.presentationml.presentation',compression:'DEFLATE'});
+}
+
 function qRatio(n){ const q=+qCfg().q||3; const ios=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
   const maxA=ios?16e6:((navigator.deviceMemory||4)>=8?60e6:40e6); return Math.max(1,Math.min(q,Math.sqrt(maxA/Math.max(1,n.offsetWidth*n.offsetHeight)))); }
 async function buildQPng(rep){ return withNode(buildInfo(rep), async n=>canvasBlob(await snap(n,qRatio(n)))); }
