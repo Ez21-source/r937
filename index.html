@@ -350,6 +350,8 @@ body.is-q #exportMenu [data-exp^="info-"],body.is-q #exportMenu [data-exp="png-o
 .qsum input::placeholder,table.qt input::placeholder{color:color-mix(in srgb,var(--muted) 70%,transparent)}
 .qadd{margin-top:8px}
 .qgrp{margin-top:10px} .qgh{display:flex;gap:10px;align-items:baseline;padding:6px 2px;color:var(--ink)} .qgh b{font-size:14.5px}
+.qhbox{border:1px solid var(--line);border-radius:12px;padding:4px 10px 10px;margin-top:12px;background:var(--surface)} .qhbox>summary{cursor:pointer;list-style:none} .qhbox>summary::-webkit-details-marker{display:none} .qhbox>summary::before{content:'▾';color:var(--muted);margin-inline-end:4px} .qhbox:not([open])>summary::before{content:'◂'}
+.qsubh{font-size:13px;font-weight:600;color:var(--muted);margin:10px 2px 4px;display:flex;gap:8px;align-items:baseline} .qsubh small{font-weight:400}
 .qnav{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:12px}
 table.qt th:nth-child(n+3){min-width:96px}
 @media (max-width:700px){ .qsteps{grid-template-columns:repeat(2,minmax(0,1fr))} }
@@ -631,7 +633,7 @@ function load(){
   return seedState();
 }
 let saveTimer=null;
-const APP_VER='17';
+const APP_VER='18';
 const UI_KEY='rep937-ui-v1';
 const INFO_DEF={v:4,tpl:'A',cols:3,org1:'تجمع مكة المكرمة الصحي',org2:'الرعاية الصحية الأولية',org3:'تجربة المستفيد',title:'{اسم_التقرير}',sub:'{الفترة} ({تاريخ_الفترة}) مقارنةً بـ {الفترة_السابقة}',tag:'إجمالي البلاغات · رضا المستفيد · مستوى الخدمة',by:'عبدالعزيز الوذيناني',sup:'منيرة المزيني',date:'',logo:'',cTotal:'#1E88C8',cSat:'#7CB342',cSl:'#1B3A5C',navy:'#1B3A5C',cFoot:'#5378C0',t1:80,t2:90,prevBar:true,prevVal:true,chg:true,rank:true,strip:true,secSub:true,grpHead:true,satParts:true,q:3,font:'plex',fsize:100,kpis:[['total',true],['sat',true],['sl',true]],secs:{},order:[]};
 const RF_DEF={limit:0,hideGroups:[],cmp:'one'};
@@ -2140,13 +2142,12 @@ function renderQBody(){
     <details class="qpart" open><summary><span class="qn">2</span>القطاعات <small>${q.hos.length} قطاع · الخانة الفارغة تُحسب من مراكز القطاع</small></summary>
       ${qTable('hos',q.hos)}<div class="qadd"><button type="button" class="btn sm" data-qadd="hos">${IC.plus} صف قطاع</button></div></details>
 
-    <details class="qpart" open><summary><span class="qn">3</span>المراكز الصحية <small>تحت كل قطاع مراكزه</small></summary>
-      ${q.hos.length?q.hos.map((h,hi)=>`<div class="qgrp"><div class="qgh"><b>${esc(h.name)||'قطاع بلا اسم'}</b><span class="mut">${h.centers.length} مركز</span></div>${qTable('cen',h.centers,hi)}<div class="qadd"><button type="button" class="btn sm" data-qadd="cen:${hi}">${IC.plus} مركز في ${esc(h.name)||'هذا القطاع'}</button></div></div>`).join(''):'<p class="hint">أضف القطاعات أولاً، ثم تظهر هنا خانة مراكز كل قطاع.</p>'}</details>
+    <details class="qpart" open><summary><span class="qn">3</span>المستشفيات: مراكزها وتصانيفها <small>تحت كل مستشفى مراكزه ثم تصانيفه</small></summary>
+      ${q.hos.length?q.hos.map((h,hi)=>`<details class="qgrp qhbox" open><summary class="qgh"><b>${esc(h.name)||'قطاع بلا اسم'}</b><span class="mut">${h.centers.length} مركز · ${(h.cats||[]).length} تصنيف</span></summary>
+        <div class="qsubh">المراكز الصحية</div>${qTable('cen',h.centers,hi)}<div class="qadd"><button type="button" class="btn sm" data-qadd="cen:${hi}">${IC.plus} مركز في ${esc(h.name)||'هذا القطاع'}</button></div>
+        <div class="qsubh">تصانيف المستشفى <small>يظهر أعلاها حسب عدد البلاغات في صفحة المستشفى</small></div>${qTable('hc',h.cats||[],hi)}<div class="qadd"><button type="button" class="btn sm" data-qadd="hc:${hi}">${IC.plus} تصنيف في ${esc(h.name)||'هذا القطاع'}</button></div></details>`).join(''):'<p class="hint">أضف القطاعات أولاً، ثم يظهر هنا لكل قطاع مراكزه وتصانيفه.</p>'}</details>
 
-    <details class="qpart" open><summary><span class="qn">4</span>تصانيف كل مستشفى <small>تظهر في صفحة المستشفى · أعلاها حسب عدد البلاغات</small></summary>
-      ${q.hos.length?q.hos.map((h,hi)=>`<div class="qgrp"><div class="qgh"><b>${esc(h.name)||'قطاع بلا اسم'}</b><span class="mut">${(h.cats||[]).length} تصنيف</span></div>${qTable('hc',h.cats||[],hi)}<div class="qadd"><button type="button" class="btn sm" data-qadd="hc:${hi}">${IC.plus} تصنيف في ${esc(h.name)||'هذا القطاع'}</button></div></div>`).join(''):'<p class="hint">أضف القطاعات أولاً.</p>'}</details>
-
-    <details class="qpart" open><summary><span class="qn">5</span>التصانيف الفرعية للربع <small>${q.cats.length} تصنيف · شاملة لكل القطاعات (صفحة الملخص)</small></summary>
+    <details class="qpart" open><summary><span class="qn">4</span>التصانيف الفرعية للربع <small>${q.cats.length} تصنيف · شاملة لكل القطاعات (صفحة الملخص)</small></summary>
       ${qTable('cat',q.cats)}<div class="qadd"><button type="button" class="btn sm" data-qadd="cat">${IC.plus} صف تصنيف</button></div></details>
 
     <div class="qnav">${prev?`<button type="button" class="btn" data-qtab="${qIdx-1}">→ ${esc(prev.label)}</button>`:'<span></span>'}
