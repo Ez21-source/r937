@@ -634,7 +634,7 @@ function load(){
   return seedState();
 }
 let saveTimer=null;
-const APP_VER='19';
+const APP_VER='20';
 const UI_KEY='rep937-ui-v1';
 const INFO_DEF={v:4,tpl:'A',cols:3,org1:'تجمع مكة المكرمة الصحي',org2:'الرعاية الصحية الأولية',org3:'تجربة المستفيد',title:'{اسم_التقرير}',sub:'{الفترة} ({تاريخ_الفترة}) مقارنةً بـ {الفترة_السابقة}',tag:'إجمالي البلاغات · رضا المستفيد · مستوى الخدمة',by:'عبدالعزيز الوذيناني',sup:'منيرة المزيني',date:'',logo:'',cTotal:'#1E88C8',cSat:'#7CB342',cSl:'#1B3A5C',navy:'#1B3A5C',cFoot:'#5378C0',t1:80,t2:90,prevBar:true,prevVal:true,chg:true,rank:true,strip:true,secSub:true,grpHead:true,satParts:true,q:3,font:'plex',fsize:100,kpis:[['total',true],['sat',true],['sl',true]],secs:{},order:[]};
 const RF_DEF={limit:0,hideGroups:[],cmp:'one'};
@@ -2078,11 +2078,11 @@ const Q_DEF_YN=[[2025,4],[2026,1],[2026,2],[2026,3]];
 function qYN(label){ const L=String(label||''); const y=(L.match(/(20\d\d)/)||[])[1]; const i=QN_AR.findIndex(x=>L.includes(x.replace('الربع ','')));
   return y&&i>=0?{y:+y,n:i+1}:null; }
 const qOrd=q=> (q.y&&q.n) ? q.y*10+q.n : null;
-const QF=['count','sat','within','over','o48'];
-const QX=['op48','s48']; // للقطاع وملخص الربع فقط
+const QF=['count','sat','within','o48'];
+const QX=['op48']; // للقطاع وملخص الربع فقط
 window.QF_=QF;
 const QDUR=['over','within','o48','op48','s48'];
-const QF_L={count:'عدد البلاغات',sat:'متوسط الرضا %',within:'خلال 24 ساعة',over:'أكثر من 24 ساعة',o48:'أكثر من 48 ساعة',op48:'مفتوحة أكثر من 48 ساعة',s48:'أُغلقت بعد 48 · مستوى الخدمة «لا»'};
+const QF_L={count:'عدد البلاغات',sat:'متوسط الرضا %',within:'خلال 48 ساعة',o48:'أكثر من 48 ساعة',op48:'مفتوحة أكثر من 48 ساعة'};
 const qRow=(name='')=>({name,count:null,sat:null,over:null,within:null,o48:null,op48:null,s48:null});
 const qEmpty=(label,show,y,n)=>({label,y:y||null,n:n||null,date:'',show,sum:{count:null,sat:null,over:null,within:null},hos:[],cats:[]});
 function newQuarterly(name){
@@ -2092,11 +2092,11 @@ function normQ(r){
   r.id=r.id||uid(); r.sections={};
   r.qs=(r.qs||[]).slice(0,16); if(!r.qs.length) r.qs=newQuarterly().qs;
   const num=v=>{ const n=toNum(v,false); return n==null?null:n; }, pct=v=>{ const n=toNum(v,true); return n==null?null:n; };
-  const fix=o=>{ o.name=String(o.name??''); o.count=num(o.count); o.sat=pct(o.sat); QDUR.forEach(k=>o[k]=num(o[k])); return o; };
+  const fix=o=>{ o.name=String(o.name??''); o.count=num(o.count); o.sat=pct(o.sat); QDUR.forEach(k=>o[k]=num(o[k])); qFold(o); return o; };
   r.qs.forEach((q,i)=>{ q.label=q.label||(q.y&&q.n?`${QN_AR[q.n-1]} ${q.y}`:`ربع ${i+1}`); q.date=q.date||''; if(typeof q.show!=='boolean') q.show=i>0;
     if(!(q.y>2000&&q.n>=1&&q.n<=4)){ const yn=qYN(q.label); q.y=yn?yn.y:null; q.n=yn?yn.n:null; }
     delete q.recs;
-    { const S=q.sum||{}; q.sum={count:num(S.count),sat:pct(S.sat)}; QDUR.forEach(k=>q.sum[k]=num(S[k])); }
+    { const S=q.sum||{}; q.sum={count:num(S.count),sat:pct(S.sat)}; QDUR.forEach(k=>q.sum[k]=num(S[k])); qFold(q.sum); }
     q.hos=(q.hos||[]).map(h=>{ fix(h); h.centers=(h.centers||[]).map(fix); h.cats=(h.cats||[]).map(fix); return h; });
     q.cats=(q.cats||[]).map(fix); });
   if(r.qs.every(q=>qOrd(q))) r.qs.sort((a,b)=>qOrd(a)-qOrd(b));
@@ -2110,8 +2110,9 @@ const qWAvg=(L)=>{ let s=0,w=0,n=0,u=0; L.forEach(x=>{ if(typeof x.sat==='number
 function qHos(h){ const C=h.centers||[], o={name:h.name, count:h.count??qSum(C,'count'), sat:h.sat??qWAvg(C)}; QDUR.forEach(k=>o[k]=h[k]??qSum(C,k)); return o; }
 function qTot(q){ const H=q.hos.map(qHos), o={count:q.sum.count??qSum(H,'count'), sat:q.sum.sat??qWAvg(H)}; QDUR.forEach(k=>o[k]=q.sum[k]??qSum(H,k)); return o; }
 // نسبة المتأخر: أكثر من 24 (ومعها أكثر من 48) من كل المغلق
-const qLate=o=>(typeof o.over==='number'||typeof o.o48==='number')?(o.over||0)+(o.o48||0):null;
-const qShare=o=>{ const a=qLate(o), b=o.within; return (typeof a==='number'&&typeof b==='number'&&a+b>0)?a/(a+b):null; };
+function qFold(o){ if(typeof o.over==='number') o.within=(o.within||0)+o.over; o.over=null; o.s48=null; return o; }
+const qLate=o=>typeof o.o48==='number'?o.o48:null;
+const qShare=o=>{ const a=o.o48, b=o.within; return (typeof a==='number'&&typeof b==='number'&&a+b>0)?a/(a+b):null; };
 
 /* ---------- entry form ---------- */
 let qIdx=0;
@@ -2145,7 +2146,7 @@ function renderQBody(){
 
     <details class="qpart" open><summary><span class="qn">1</span>ملخص الربع <small>الخانة الفارغة تُحسب من القطاعات (الرقم الباهت)</small></summary>
       <div class="qsum">${[...QF,...QX].map(sumIn).join('')}</div>
-      <p class="hint" style="margin:6px 0 0">مدة الإغلاق للبلاغات المغلقة: خلال 24، وأكثر من 24، وأكثر من 48. و«مفتوحة أكثر من 48» و«أُغلقت بعد 48 · مستوى الخدمة «لا»» عددان يظهران في سطرين مستقلين.</p></details>
+      <p class="hint" style="margin:6px 0 0">إغلاق البلاغات المغلقة جزءان: «خلال 48 ساعة» و«أكثر من 48 ساعة». و«مفتوحة أكثر من 48 ساعة» يظهر في سطر أحمر مستقل.</p></details>
 
     <details class="qpart" open><summary><span class="qn">2</span>القطاعات <small>${q.hos.length} قطاع · الخانة الفارغة تُحسب من مراكز القطاع</small></summary>
       ${qTable('hos',q.hos)}<div class="qadd"><button type="button" class="btn sm" data-qadd="hos">${IC.plus} صف قطاع</button></div></details>
@@ -2249,17 +2250,18 @@ function qBuildInfo(rep,opt){
   const heat=v=> v==null?'#F1F4F7': v*100>=t2?'#DDF0E3': v*100>=t1?'#E3EFFA': v*100>=t1-10?'#FFF1D9':'#FBE1DF';
   const heatT=v=> v==null?'#9AA6B2': v*100>=t2?'#1F7A43': v*100>=t1?'#1E6FA8': v*100>=t1-10?'#9A5B00':'#B3322D';
   const bd=x=>`<bdi dir="ltr">${x}</bdi>`, fp=(v,dd=1)=>v==null?'—':(v*100).toFixed(dd)+'%';
-  const stack=(o,h)=>{ const w=o.within||0, a=o.over||0, r=o.o48||0, t=w+a+r;
-    return `<div class="stk" style="height:${h}px">${!t?'<span style="flex:1;background:#E3E9EF"></span>':`<span style="width:${w/t*100}%;background:#2E9E5B"></span><span style="width:${a/t*100}%;background:#E39B2D"></span><span style="flex:1;background:#D64545"></span>`}</div>`; };
-  const nums=o=>`<span class="cln"><span class="g">${fmtInt(o.within)}</span><span class="a">${fmtInt(o.over)}</span>${o.o48!=null?`<span class="r">${fmtInt(o.o48)}</span>`:''}</span>`;
-  const clTxt=o=>`<span class="g">خلال 24: ${fmtInt(o.within)}</span><span class="a">أكثر من 24: ${fmtInt(o.over)}</span>${o.o48!=null?`<span class="r">أكثر من 48: ${fmtInt(o.o48)}</span>`:''}`;
+  const GO='linear-gradient(to left,#2E9E5B,#E39B2D)';
+  const stack=(o,h)=>{ const w=o.within||0, r=o.o48||0, t=w+r;
+    return `<div class="stk" style="height:${h}px">${!t?'<span style="flex:1;background:#E3E9EF"></span>':`<span style="width:${w/t*100}%;background:${GO}"></span><span style="flex:1;background:#D64545"></span>`}</div>`; };
+  const nums=o=>`<span class="cln"><span class="g">${fmtInt(o.within)}</span><span class="r">${fmtInt(o.o48)}</span></span>`;
+  const clTxt=o=>`<span class="g">خلال 48 ساعة: ${fmtInt(o.within)}</span><span class="r">أكثر من 48 ساعة: ${fmtInt(o.o48)}</span>`;
   /* السطران المستقلان: المفتوح أكثر من 48، والمغلق بعد 48 وعمود مستوى الخدمة «لا» */
-  const xl=(o,mini)=>{ const A=Z.xOp48!==false&&o.op48!=null, B=Z.xS48!==false&&o.s48!=null; if(!A&&!B) return '';
-    return `<div class="xls${mini?' mini':''}">${A?`<div class="xop"><span>مفتوحة أكثر من 48 ساعة</span><b>${fmtInt(o.op48)}</b></div>`:''}${B?`<div class="xs4"><b>${fmtInt(o.s48)}</b><span>أُغلقت خلال 48 ساعة</span></div>`:''}</div>`; };
+  const xl=(o,mini)=>{ if(Z.xOp48===false||o.op48==null) return '';
+    return `<div class="xls${mini?' mini':''}"><div class="xop"><span>مفتوحة أكثر من 48 ساعة</span><b>${fmtInt(o.op48)}</b></div></div>`; };
   const top=(list,metric,n)=>{ let L=list.slice();
     if(metric==='tot') L=L.filter(x=>x.count!=null).sort((a,b)=>b.count-a.count);
     if(metric==='sat') L=L.filter(x=>x.sat!=null).sort((a,b)=>a.sat-b.sat);
-    if(metric==='cl'){ L=L.filter(x=>x.over!=null||x.within!=null||x.o48!=null); Z.clSort==='over' ? L.sort((a,b)=>(qLate(b)||0)-(qLate(a)||0)) : Z.clSort==='o48' ? L.sort((a,b)=>(b.o48||0)-(a.o48||0)) : L.sort((a,b)=>(b.count||0)-(a.count||0)); }
+    if(metric==='cl'){ L=L.filter(x=>x.within!=null||x.o48!=null); (Z.clSort==='o48'||Z.clSort==='over') ? L.sort((a,b)=>(b.o48||0)-(a.o48||0)) : L.sort((a,b)=>(b.count||0)-(a.count||0)); }
     return L.slice(0,n); };
   const item={
     tot:(x,p)=>`<span class="v">${fmtInt(x.count)}</span>${p?qChg(p.count,x.count,'count'):''}`,
@@ -2278,7 +2280,7 @@ function qBuildInfo(rep,opt){
   const QV=qi=>qi>0?rep.qs[qi-1].label:'';
   const qh=first=>`<div class="qh" style="${cols}"><div style="text-align:start">${first}</div>${SHOW.map(qi=>`<div class="qhc" style="--c:${qcol(qi)}">${esc(rep.qs[qi].label)}${qi>0?` <small>مقارنةً بـ ${esc(QV(qi))}</small>`:''}</div>`).join('')}</div>`;
   const sHead=hk=>`<div class="sh" style="${cols}"><div class="sn">${esc(hk.name)}</div>${SHOW.map(qi=>{ const h=hosOf(qi,hk.k); if(!h) return '<div class="sq"><span class="mut">—</span></div>'; const x=qHos(h), p=PM(qi)?.H.get(hk.k);
-      return `<div class="sq"><div><span>البلاغات</span><b>${fmtInt(x.count)}</b>${p?qChg(p.count,x.count,'count'):''}</div><div><span>الرضا</span><b>${bd(fp(x.sat))}</b>${p?qChg(p.sat,x.sat,'sat'):''}</div><div><span>الإغلاق</span>${stack(x,8).replace('class="stk"','class="stk" style="flex:1;height:8px"')}<em class="g">${fmtInt(x.within)}</em><em class="a">${fmtInt(x.over)}</em>${x.o48!=null?`<em class="r">${fmtInt(x.o48)}</em>`:''}${p?qChg(qShare(p),qShare(x),'over'):''}</div>${xl(x,1)}</div>`; }).join('')}</div>`;
+      return `<div class="sq"><div><span>البلاغات</span><b>${fmtInt(x.count)}</b>${p?qChg(p.count,x.count,'count'):''}</div><div><span>الرضا</span><b>${bd(fp(x.sat))}</b>${p?qChg(p.sat,x.sat,'sat'):''}</div><div><span>الإغلاق</span>${stack(x,8).replace('class="stk"','class="stk" style="flex:1;height:8px"')}<em class="g">${fmtInt(x.within)}</em><em class="r">${fmtInt(x.o48)}</em>${p?qChg(qShare(p),qShare(x),'over'):''}</div>${xl(x,1)}</div>`; }).join('')}</div>`;
   const cenGrid=hk=>grid(qi=>{ const h=hosOf(qi,hk.k); return h?h.centers.map(cc=>({...cc,name:qStrip(cc.name)})):[]; }, (qi,x)=>{ const pm=PM(qi); if(!pm) return null; const h=hosOf(qi,hk.k); const raw=h&&h.centers.find(cc=>qStrip(cc.name)===x.name); return raw?pm.C.get(hk.k+'|'+fold(raw.name)):null; }, Z.topC);
   const card=hk=>`<div class="card sc">${sHead(hk)}${cenGrid(hk)}</div>`;
   const catCard=`<div class="card sc tc"><div class="sh" style="${cols}"><div class="sn">التصانيف</div><div style="grid-column:span ${N};font-size:13px;opacity:.85">شاملة لكل القطاعات · أعلى ${Z.topCat} في كل ربع</div></div>${grid(qi=>rep.qs[qi].cats, (qi,x)=>PM(qi)?.K.get(fold(x.name))||null, Z.topCat)}</div>`;
@@ -2287,7 +2289,7 @@ function qBuildInfo(rep,opt){
       <div class="kk"><span>إجمالي البلاغات</span><b>${fmtInt(T.count)}</b>${p?qChg(p.count,T.count,'count'):''}</div>
       <div class="kk"><span>متوسط الرضا</span><b>${bd(fp(T.sat,2))}</b>${p?qChg(p.sat,T.sat,'sat'):''}</div>
       <div class="kk"><span>مدة الإغلاق</span><div style="flex:1">${stack(T,14)}<div class="cln" style="font-size:12.5px">${clTxt(T)}</div></div>${p?qChg(qShare(p),qShare(T),'over'):''}</div>${xl(T)}</div>`; }).join('')}</div>`;
-  const key=`<div class="keyb"><span>مدة إغلاق البلاغات المغلقة:</span><span><i style="background:#2E9E5B"></i>خلال 24 ساعة</span><span><i style="background:#E39B2D"></i>أكثر من 24 ساعة</span><span><i style="background:#D64545"></i>أكثر من 48 ساعة</span><span>المثلث: كل ربع مقارنةً بالربع الذي قبله · الأحمر تراجع والأخضر تحسن · «ن» نقطة مئوية</span><span>ألوان الرضا: <span class="pl" style="background:#DDF0E3;color:#1F7A43">${t2}%+</span> <span class="pl" style="background:#E3EFFA;color:#1E6FA8">${t1}–${t2}</span> <span class="pl" style="background:#FFF1D9;color:#9A5B00">${t1-10}–${t1}</span> <span class="pl" style="background:#FBE1DF;color:#B3322D">&lt;${t1-10}</span></span></div>`;
+  const key=`<div class="keyb"><span>إغلاق البلاغات المغلقة:</span><span><i style="background:linear-gradient(to left,#2E9E5B,#E39B2D)"></i>خلال 48 ساعة</span><span><i style="background:#D64545"></i>أكثر من 48 ساعة</span><span><i style="background:#D64545;border-radius:2px"></i>السطر الأحمر: مفتوحة أكثر من 48 ساعة</span><span>المثلث: كل ربع مقارنةً بالربع الذي قبله · الأحمر تراجع والأخضر تحسن · «ن» نقطة مئوية</span><span>ألوان الرضا: <span class="pl" style="background:#DDF0E3;color:#1F7A43">${t2}%+</span> <span class="pl" style="background:#E3EFFA;color:#1E6FA8">${t1}–${t2}</span> <span class="pl" style="background:#FFF1D9;color:#9A5B00">${t1-10}–${t1}</span> <span class="pl" style="background:#FBE1DF;color:#B3322D">&lt;${t1-10}</span></span></div>`;
   const sub=Z.sub || `${SHOW.map(i=>rep.qs[i].label).join(' · ')} · كل ربع مقارنةً بالربع الذي قبله`;
   const title=igTok(c.title||'{اسم_التقرير}',rep);
   /* v17: رأس وذيل وتنويهات وعلامة مائية مثل «تنسيق التقرير» في القاعدة */
@@ -2485,7 +2487,7 @@ const Q_TAGS=['الجهة','العنوان','المعد','المشرف','الف�
 const qFill=(t,ctx)=>String(t||'').replace(/\{([^{}]+)\}/g,(m,k)=>k in ctx?ctx[k]:m).replace(/(\s*[·\-|،]\s*){2,}/g,' · ').replace(/^\s*[·\-|،]\s*|\s*[·\-|،]\s*$/g,'').trim();
 const Q_THEMES={navy:{l:'كحلي (الافتراضي)',navy:'#1B3A5C',cTotal:'#1E88C8',bg:'#F6F8FB'},green:{l:'أخضر صحي',navy:'#0B6B5D',cTotal:'#1D8A78',bg:'#F2F8F6'},teal:{l:'تركوازي',navy:'#0E6E86',cTotal:'#1A8FAA',bg:'#F1F7F9'},
   maroon:{l:'عنابي',navy:'#7A1F2B',cTotal:'#A33445',bg:'#FBF4F5'},gray:{l:'رمادي',navy:'#3F4A55',cTotal:'#6B7884',bg:'#F5F6F7'},bw:{l:'أبيض وأسود للطباعة',navy:'#222222',cTotal:'#555555',bg:'#FFFFFF'}};
-const QI_DEF={v:1,pv:1,xOp48:true,xS48:true,layout:'P',pSum:true,hcTop:5,theme:'navy',bg:'#F6F8FB',txt:'#1C2B39',hf:JSON.parse(JSON.stringify(Q_HF_DEF)),logoSize:72,logoPos:'left',logo2:'',notes:[],wm:{on:0,src:'logo',image:'',op:0.07},wmData:'',topC:3,topCat:5,clSort:'count',
+const QI_DEF={v:1,pv:1,xOp48:true,layout:'P',pSum:true,hcTop:5,theme:'navy',bg:'#F6F8FB',txt:'#1C2B39',hf:JSON.parse(JSON.stringify(Q_HF_DEF)),logoSize:72,logoPos:'left',logo2:'',notes:[],wm:{on:0,src:'logo',image:'',op:0.07},wmData:'',topC:3,topCat:5,clSort:'count',
   title:'التقرير الربعي لبلاغات 937',sub:'',org1:'تجمع مكة المكرمة الصحي',org2:'الرعاية الصحية الأولية',org3:'تجربة المستفيد',
   by:'',sup:'',date:'',logo:'',font:'plex',fsize:100,navy:'#1B3A5C',cTotal:'#1E88C8',t1:80,t2:90,strip:true,q:3,paper:'a3',hosTop:0,hosOff:[],
   sOwn:false,sTitle:'',sSub:'',sOrg1:'',sOrg2:'',sOrg3:'',sDate:'',sFoot:'',sBy:true,
@@ -2531,9 +2533,9 @@ function qiPanelBody(){
      <div><label class="fld-lbl" for="qiH">عدد القطاعات</label><select class="inp" id="qiH" data-qi="hosTop">${opt([[0,'كل المحددة'],[3,'أعلى 3'],[5,'أعلى 5'],[8,'أعلى 8'],[10,'أعلى 10']],Z.hosTop)}</select></div>
      <p class="hint" style="margin:0">«أعلى» حسب بلاغات آخر ربع ظاهر، من بين القطاعات المحددة. بطاقات الأرباع والتصانيف في الأعلى تبقى لكل القطاعات.</p>
      `+`<div class="two"><div><label class="fld-lbl" for="qiC">المراكز تحت كل مستشفى</label><select class="inp" id="qiC" data-qi="topC">${opt([[2,'2'],[3,'3'],[4,'4'],[5,'5']],Z.topC)}</select></div><div><label class="fld-lbl" for="qiK">التصانيف في كل ربع</label><select class="inp" id="qiK" data-qi="topCat">${opt([[3,'3'],[5,'5'],[8,'8'],[10,'10']],Z.topCat)}</select></div></div>
-     <div><label class="fld-lbl" for="qiS">ترتيب مدة الإغلاق</label><select class="inp" id="qiS" data-qi="clSort">${opt([['count','عدد البلاغات من الأعلى'],['over','عدد المتأخر (أكثر من 24 ومعها أكثر من 48) من الأعلى'],['o48','عدد «أكثر من 48 ساعة» من الأعلى']],Z.clSort)}</select></div>
-     <div class="togs">${tog('xOp48','سطر أحمر: البلاغات المفتوحة أكثر من 48 ساعة')}${tog('xS48','سطر أخضر وبرتقالي: المغلقة بعد 48 ساعة وعمود مستوى الخدمة فيها «لا» (أُغلقت خلال 48 ساعة)')}</div>
-     <p class="hint" style="margin:0">يظهر السطران في بطاقات الأرباع، ومؤشرات كل مستشفى، وسطر كل مستشفى في الملخص. أعدادهما تأتي من القاعدة (الإصدار 163 أو أحدث) أو تُعبّأ في صفحة الإدخال.</p>
+     <div><label class="fld-lbl" for="qiS">ترتيب مدة الإغلاق</label><select class="inp" id="qiS" data-qi="clSort">${opt([['count','عدد البلاغات من الأعلى'],['o48','عدد «أكثر من 48 ساعة» من الأعلى']],Z.clSort==='over'?'o48':Z.clSort)}</select></div>
+     <div class="togs">${tog('xOp48','سطر أحمر: البلاغات المفتوحة أكثر من 48 ساعة')}</div>
+     <p class="hint" style="margin:0">يظهر في بطاقات الأرباع، ومؤشرات كل مستشفى، وسطر كل مستشفى في الملخص. وعدده يأتي من القاعدة (الإصدار 169 أو أحدث) أو يُعبّأ في صفحة الإدخال.</p>
      <p class="hint" style="margin:0">البلاغات من الأعلى إلى الأدنى، والرضا من الأقل إلى الأعلى. والمستشفيات مرتبة حسب بلاغات آخر ربع ظاهر.</p>
      <div class="togs">${tog('strip','حذف «مركز صحي» من بداية أسماء المراكز')}</div>`; }
   if(qiTab==='head'){ const H=qHF(Z);
@@ -2842,11 +2844,11 @@ const Q_MARK='تقرير ربعي 937';
 function qSheetXml(rep){
   const rows=[]; const R=(cells,st)=>rows.push({cells,st});
   R([Q_MARK, rep.name],[ST.title,ST.title]);
-  R(['الربع','النوع','القطاع','الاسم','عدد البلاغات','متوسط الرضا','أكثر من 24 ساعة','خلال 24 ساعة','أكثر من 48 ساعة','مفتوحة أكثر من 48 ساعة','أُغلقت بعد 48 · مستوى الخدمة «لا»','ملاحظة'],Array(12).fill(ST.head));
-  const vals=o=>[o.count,o.sat,o.over,o.within,o.o48,o.op48,o.s48];
-  const sty=[ST.text,ST.text,ST.text,ST.text,ST.int,ST.pct,ST.int,ST.int,ST.int,ST.int,ST.int,ST.text];
+  R(['الربع','النوع','القطاع','الاسم','عدد البلاغات','متوسط الرضا','خلال 48 ساعة','أكثر من 48 ساعة','مفتوحة أكثر من 48 ساعة','ملاحظة'],Array(10).fill(ST.head));
+  const vals=o=>[o.count,o.sat,o.within,o.o48,o.op48];
+  const sty=[ST.text,ST.text,ST.text,ST.text,ST.int,ST.pct,ST.int,ST.int,ST.int,ST.text];
   rep.qs.forEach(q=>{
-    R([q.label,'ربع','',q.date,...vals(q.sum),q.show?'يظهر في الإنفوجرافيك':'للمقارنة فقط'],[ST.slabel,ST.slabel,ST.slabel,ST.slabel,ST.sint,ST.spct,ST.sint,ST.sint,ST.sint,ST.sint,ST.sint,ST.slabel]);
+    R([q.label,'ربع','',q.date,...vals(q.sum),q.show?'يظهر في الإنفوجرافيك':'للمقارنة فقط'],[ST.slabel,ST.slabel,ST.slabel,ST.slabel,ST.sint,ST.spct,ST.sint,ST.sint,ST.sint,ST.slabel]);
     q.hos.forEach(h=>{ R([q.label,'قطاع',h.name,h.name,...vals(h),''],sty); h.centers.forEach(c=>R([q.label,'مركز',h.name,c.name,...vals(c),''],sty)); (h.cats||[]).forEach(c=>R([q.label,'تصنيف مستشفى',h.name,c.name,...vals(c),''],sty)); });
     q.cats.forEach(c=>R([q.label,'تصنيف','',c.name,...vals(c),''],sty));
   });
@@ -2854,7 +2856,7 @@ function qSheetXml(rep){
     if(v==null||v==='') return `<c r="${ref}"${s}/>`; if(typeof v==='number') return `<c r="${ref}"${s}><v>${v}</v></c>`;
     return `<c r="${ref}"${s} t="inlineStr"><is><t xml:space="preserve">${xe(v)}</t></is></c>`; }).join('')}</row>`).join('');
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetViews><sheetView rightToLeft="1" workbookViewId="0"><pane ySplit="2" topLeftCell="A3" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="18"/><cols><col min="1" max="1" width="20" customWidth="1"/><col min="2" max="2" width="9" customWidth="1"/><col min="3" max="3" width="26" customWidth="1"/><col min="4" max="4" width="44" customWidth="1"/><col min="5" max="11" width="15" customWidth="1"/><col min="12" max="12" width="22" customWidth="1"/></cols><sheetData>${xml}</sheetData><autoFilter ref="A2:L${rows.length}"/></worksheet>`;
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetViews><sheetView rightToLeft="1" workbookViewId="0"><pane ySplit="2" topLeftCell="A3" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="18"/><cols><col min="1" max="1" width="20" customWidth="1"/><col min="2" max="2" width="9" customWidth="1"/><col min="3" max="3" width="26" customWidth="1"/><col min="4" max="4" width="44" customWidth="1"/><col min="5" max="9" width="15" customWidth="1"/><col min="10" max="10" width="22" customWidth="1"/></cols><sheetData>${xml}</sheetData><autoFilter ref="A2:J${rows.length}"/></worksheet>`;
 }
 function qParseSheet(name, grid){
   const cell=(r,c)=>{ const v=grid.get(r*100000+c); return v==null?'':v; };
@@ -2864,11 +2866,15 @@ function qParseSheet(name, grid){
   const getQ=l=>{ if(!byLabel.has(l)){ const q=qEmpty(l,rep.qs.length>0); byLabel.set(l,q); rep.qs.push(q); } return byLabel.get(l); };
   const v=(r,c,ratio)=>toNum(cell(r,c),ratio);
   let maxR=0; grid.forEach((v,k)=>{ maxR=Math.max(maxR,Math.floor(k/100000)); });
-  let HX=0; for(let c=0;c<20;c++) if(String(cell(2,c)).trim()) HX=c+1; // ملف قديم: 9 أعمدة
+  // الأعمدة تُقرأ بأسمائها، فتصلح ملفات الإصدارات السابقة أيضاً
+  const HD={}; for(let c=0;c<30;c++){ const t=String(cell(2,c)).trim(); if(t&&!(t in HD)) HD[t]=c; }
+  const col=(...names)=>{ for(const n of names) if(n in HD) return HD[n]; return -1; };
+  const cW48=col('خلال 48 ساعة'), cW24=col('خلال 24 ساعة'), cO24=col('أكثر من 24 ساعة'), cO48=col('أكثر من 48 ساعة'), cOp=col('مفتوحة أكثر من 48 ساعة'), cNote=col('ملاحظة');
+  const gv=(r,c)=>c<0?null:v(r,c);
   for(let r=3;r<=maxR;r++){ const L=String(cell(r,0)).trim(); if(!L) continue;
     const q=getQ(L), t=String(cell(r,1)).trim(), hn=String(cell(r,2)).trim(), nm=String(cell(r,3)).trim();
-    const o={count:v(r,4),sat:v(r,5,true),over:v(r,6),within:v(r,7)}; if(HX>9){ o.o48=v(r,8); o.op48=v(r,9); o.s48=v(r,10); }
-    if(t==='ربع'){ q.date=nm; q.sum=o; q.show=!/مقارنة/.test(String(cell(r,HX>9?11:8))); }
+    const o={count:v(r,4),sat:v(r,5,true),within:gv(r,cW48),over:cW48<0?gv(r,cO24):null,o48:gv(r,cO48),op48:gv(r,cOp)}; if(cW48<0){ const w=gv(r,cW24); if(w!=null) o.within=w; }
+    if(t==='ربع'){ q.date=nm; q.sum=o; q.show=!/مقارنة/.test(String(cell(r,cNote<0?8:cNote))); }
     else if(t==='قطاع'){ q.hos.push({name:nm||hn,...o,centers:[]}); }
     else if(t==='مركز'){ let h=q.hos.find(x=>fold(x.name)===fold(hn)); if(!h){ h={...qRow(hn),centers:[]}; q.hos.push(h); } h.centers.push({name:nm,...o}); }
     else if(t==='تصنيف مستشفى'){ let h=q.hos.find(x=>fold(x.name)===fold(hn)); if(!h){ h={...qRow(hn),centers:[],cats:[]}; q.hos.push(h); } (h.cats||(h.cats=[])).push({name:nm,...o}); }
@@ -2883,7 +2889,7 @@ function qFind(L,q){ const o=qOrd(q); return L.find(x=> o && qOrd(x)===o) || L.f
 // يحدّث أعداد البلاغات ومدة الإغلاق من القاعدة، ويُبقي الرضا والأسماء والإعدادات وكل صف أضفته يدوياً
 function qMergeInto(T, inc){
   const st={added:[],updated:[],kept:[]};
-  const upd=(t,s)=>{ t.count=s.count; QDUR.forEach(k=>{ if(k in s) t[k]=s[k]; }); };
+  const upd=(t,s)=>{ t.count=s.count; QDUR.forEach(k=>{ if(k in s) t[k]=s[k]; }); qFold(t); };
   inc.qs.forEach(iq=>{
     const tq=qFind(T.qs,iq);
     if(!tq){ if(qHas(iq)||!T.qs.length){ T.qs.push(JSON.parse(JSON.stringify(iq))); st.added.push(iq.label); } return; }
