@@ -465,11 +465,11 @@ table.qt th:nth-child(n+3){min-width:96px}
       <button class="btn" id="btnImport" type="button" title="استيراد ملف Excel" aria-label="استيراد ملف Excel">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="m9 12 6 6M15 12l-6 6"/></svg>
         <span class="lbl">استيراد Excel</span></button>
-      <input type="file" id="fileInput" accept=".xlsx,.xlsm" hidden>
+      <input type="file" id="fileInput" hidden>
       <button class="btn" id="btnFromDb" type="button" title="استيراد من قاعدة البلاغات" aria-label="استيراد من قاعدة البلاغات">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3"/><path d="m16 17 3 3 3-3"/><path d="M19 13v7"/></svg>
         <span class="lbl">استيراد من القاعدة</span></button>
-      <input type="file" id="dbInput" accept=".json,application/json" hidden>
+      <input type="file" id="dbInput" hidden>
       <div class="menu-wrap">
         <button class="btn primary" id="btnExport" type="button" aria-haspopup="true" aria-expanded="false">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>
@@ -634,7 +634,7 @@ function load(){
   return seedState();
 }
 let saveTimer=null;
-const APP_VER='21';
+const APP_VER='22';
 const UI_KEY='rep937-ui-v1';
 const INFO_DEF={v:4,tpl:'A',cols:3,org1:'تجمع مكة المكرمة الصحي',org2:'الرعاية الصحية الأولية',org3:'تجربة المستفيد',title:'{اسم_التقرير}',sub:'{الفترة} ({تاريخ_الفترة}) مقارنةً بـ {الفترة_السابقة}',tag:'إجمالي البلاغات · رضا المستفيد · مستوى الخدمة',by:'عبدالعزيز الوذيناني',sup:'منيرة المزيني',date:'',logo:'',cTotal:'#1E88C8',cSat:'#7CB342',cSl:'#1B3A5C',navy:'#1B3A5C',cFoot:'#5378C0',t1:80,t2:90,prevBar:true,prevVal:true,chg:true,rank:true,strip:true,secSub:true,grpHead:true,satParts:true,q:3,font:'plex',fsize:100,kpis:[['total',true],['sat',true],['sl',true]],secs:{},order:[]};
 const RF_DEF={limit:0,hideGroups:[],cmp:'one'};
@@ -1336,21 +1336,30 @@ function parseSheet(name, grid){
   if(dl) dl.forEach((x,i)=>{ rep.periods[i].date=String(x.v).trim(); });
   return rep;
 }
+// v22: نوع الملف يُعرف من محتواه لا من اسمه، فلا يظهر رمادياً إذا غيّر الجوال أو البرنامج نوعه أو امتداده
+async function fileKind(file){ const b=new Uint8Array(await file.slice(0,8).arrayBuffer());
+  if(b[0]===0x50&&b[1]===0x4B) return 'xlsx'; if(b[0]===0xD0&&b[1]===0xCF&&b[2]===0x11&&b[3]===0xE0) return 'xls';
+  let i=0; if(b[0]===0xEF&&b[1]===0xBB&&b[2]===0xBF) i=3; while(i<b.length&&/\s/.test(String.fromCharCode(b[i]))) i++; if(b[i]===0x7B||b[i]===0x5B) return 'json'; return 'other'; }
+function badFile(kind,file){ dialog({title:'لا يمكن قراءة هذا الملف', body:kind==='xls'
+  ? `«${file.name}» محفوظ بصيغة Excel القديمة (.xls). افتحه في Excel واختر «حفظ باسم» ← «Excel Workbook (*.xlsx)»، ثم استورد الملف الجديد.`
+  : `«${file.name}» ليس ملف Excel (.xlsx) ولا ملفاً من القاعدة. إن كان من Google Sheets فنزّله من «ملف ← تنزيل ← Microsoft Excel (.xlsx)».`, actions:[{label:'حسناً',cls:'primary'}]}); }
 async function importFile(file){
-  if(/\.json$/i.test(file.name)) return importFromDb(file);
-  if(!/\.xlsx$|\.xlsm$/i.test(file.name)){ toast('اختر ملف Excel بصيغة xlsx'); return; }
+  const kind=await fileKind(file);
+  if(kind==='json') return importFromDb(file);
+  if(kind!=='xlsx') return badFile(kind,file);
   let sheets;
   try{ sheets=await readXlsx(await file.arrayBuffer()); }
   catch(e){ console.error(e); toast(e.message||'تعذرت قراءة الملف'); return; }
-  const reps=sheets.map(s=>parseSheet(s.name,s.grid)).filter(Boolean);
-  const skipped=sheets.filter(s=>!reps.find(r=>r.name===s.name)).map(s=>s.name);
+  const parsed=sheets.map(s=>({s,r:parseSheet(s.name,s.grid)}));
+  const reps=parsed.map(x=>x.r).filter(Boolean);
+  const skipped=parsed.filter(x=>!x.r).map(x=>x.s.name);
   if(!reps.length){ dialog({title:'لم يُعثر على بيانات', body:'لم نجد جداول بالأعمدة المتوقعة (اسم المنشأة، عدد البلاغات، متوسط الرضا، داخل مستوى الخدمة…). تأكد من أن الملف بنفس قالب التقرير.', actions:[{label:'حسناً',cls:'primary'}]}); return; }
   const names=new Set(state.reports.map(r=>r.name));
   const same=reps.filter(r=>names.has(r.name)).length;
   dialog({title:`وُجد ${reps.length} تقرير في «${file.name}»`, html:`<ul>${reps.map(r=>`<li>${esc(r.name)} <small>(${TYPES[r.type].label})</small></li>`).join('')}</ul>${skipped.length?`<p>تُركت أوراق بلا جداول مطابقة: ${esc(skipped.join('، '))}</p>`:''}<p>${same?`${same} منها بنفس اسم تقرير موجود.`:''}</p>`,
     actions:[
       {label:'دمج مع الحالية',cls:'primary',run:()=>{ reps.forEach(r=>{ const i=state.reports.findIndex(x=>x.name===r.name); if(i>=0) state.reports[i]=r; else state.reports.push(r); }); state.current=Math.max(0,state.reports.findIndex(x=>x.name===reps[0].name)); save(); renderAll(); toast('تم الاستيراد'); }},
-      {label:'استبدال الكل',run:()=>{ state={reports:reps,current:0}; save(); renderAll(); toast('تم الاستيراد'); }},
+      {label:'استبدال الكل',run:()=>{ state.reports=reps; state.current=0; save(); renderAll(); toast('تم الاستيراد · بقيت إعداداتك كما هي'); }},
       {label:'إلغاء'}]});
 }
 
@@ -1378,7 +1387,7 @@ async function importFromDb(file){
     actions:[{label:'إضافة التقرير',cls:'primary',run:()=>{ state.reports.push(r); state.current=state.reports.length-1; view='edit'; save(); renderAll(); toast('أُضيف التقرير من القاعدة'); }},{label:'إلغاء'}]});
 }
 document.getElementById('btnFromDb').addEventListener('click',()=>document.getElementById('dbInput').click());
-document.getElementById('dbInput').addEventListener('change',e=>{ const f=e.target.files[0]; e.target.value=''; if(f) importFromDb(f); });
+document.getElementById('dbInput').addEventListener('change',e=>{ const f=e.target.files[0]; e.target.value=''; if(f) importFile(f); }); // أي الزرين: يُعرف الملف من محتواه
 document.getElementById('btnImport').addEventListener('click',()=>document.getElementById('fileInput').click());
 document.getElementById('fileInput').addEventListener('change',e=>{ const f=e.target.files[0]; e.target.value=''; if(f) importFile(f); });
 let dragN=0;
@@ -2893,27 +2902,42 @@ function qInfoXlsxSheet(rep){ return qSheetXml(rep); }
 const qHas=q=>!!(q && (q.hos.length || q.cats.length || q.sum.count!=null));
 function qFind(L,q){ const o=qOrd(q); return L.find(x=> o && qOrd(x)===o) || L.find(x=>fold(x.label)===fold(q.label)); }
 // يحدّث أعداد البلاغات ومدة الإغلاق من القاعدة، ويُبقي الرضا والأسماء والإعدادات وكل صف أضفته يدوياً
-function qMergeInto(T, inc){
-  const st={added:[],updated:[],kept:[]};
-  const upd=(t,s)=>{ t.count=s.count; QDUR.forEach(k=>{ if(k in s) t[k]=s[k]; }); qFold(t); };
+/* v22: الدمج ينقل المركز إذا تغيّر قطاعه في القاعدة (ومعه الرضا)، ويحذف المركز الذي جاء من القاعدة ولم يعد فيها.
+   الصفوف اليدوية لا تُحذف أبداً. صفوف القاعدة تُعلَّم بـ db:1 */
+function qMarkDb(q){ (q.hos||[]).forEach(h=>{ h.db=1; (h.centers||[]).forEach(c=>c.db=1); (h.cats||[]).forEach(c=>c.db=1); }); (q.cats||[]).forEach(c=>c.db=1); return q; }
+function qMergeInto(T, inc, opt={}){
+  const del=opt.del!==false, F=fold;
+  const st={added:[],updated:[],kept:[],moved:[],removed:[]};
+  const upd=(t,s)=>{ t.count=s.count; QDUR.forEach(k=>{ if(k in s) t[k]=s[k]; }); qFold(t); t.db=1; };
   inc.qs.forEach(iq=>{
     const tq=qFind(T.qs,iq);
-    if(!tq){ if(qHas(iq)||!T.qs.length){ T.qs.push(JSON.parse(JSON.stringify(iq))); st.added.push(iq.label); } return; }
+    if(!tq){ if(qHas(iq)||!T.qs.length){ T.qs.push(qMarkDb(JSON.parse(JSON.stringify(iq)))); st.added.push(iq.label); } return; }
     if(!qHas(iq)){ st.kept.push(tq.label); return; }
     if(iq.date) tq.date=iq.date;
     upd(tq.sum,iq.sum);
-    iq.hos.forEach(h=>{ let th=tq.hos.find(x=>fold(x.name)===fold(h.name));
-      if(!th){ th={...qRow(h.name),centers:[]}; tq.hos.push(th); } upd(th,h);
-      h.centers.forEach(c=>{ let tc=th.centers.find(x=>fold(x.name)===fold(c.name)); if(!tc){ tc=qRow(c.name); th.centers.push(tc); } upd(tc,c); });
-      if(!th.cats) th.cats=[]; (h.cats||[]).forEach(c=>{ let tc=th.cats.find(x=>fold(x.name)===fold(c.name)); if(!tc){ tc=qRow(c.name); th.cats.push(tc); } upd(tc,c); }); });
-    iq.cats.forEach(c=>{ let tc=tq.cats.find(x=>fold(x.name)===fold(c.name)); if(!tc){ tc=qRow(c.name); tq.cats.push(tc); } upd(tc,c); });
+    // 1) المركز الذي صار في القاعدة تحت قطاع آخر يُنقل إليه بالرضا الذي عُبّئ له
+    const home=new Map(); iq.hos.forEach(h=>h.centers.forEach(c=>{ if(!home.has(F(c.name))) home.set(F(c.name),h); }));
+    tq.hos.slice().forEach(th=>{ th.centers=th.centers.filter(tc=>{ const ih=home.get(F(tc.name)); if(!ih||F(ih.name)===F(th.name)) return true;
+      let dest=tq.hos.find(x=>F(x.name)===F(ih.name)); if(!dest){ dest={...qRow(ih.name),centers:[],cats:[],db:1}; tq.hos.push(dest); }
+      const ex=dest.centers.find(x=>F(x.name)===F(tc.name)); if(ex){ if(ex.sat==null&&tc.sat!=null) ex.sat=tc.sat; } else dest.centers.push(tc);
+      st.moved.push(`${tq.label}: «${tc.name}» من ${th.name} إلى ${dest.name}`); return false; }); });
+    // 2) التحديث والإضافة
+    iq.hos.forEach(h=>{ let th=tq.hos.find(x=>F(x.name)===F(h.name));
+      if(!th){ th={...qRow(h.name),centers:[],cats:[]}; tq.hos.push(th); } upd(th,h);
+      h.centers.forEach(c=>{ let tc=th.centers.find(x=>F(x.name)===F(c.name)); if(!tc){ tc=qRow(c.name); th.centers.push(tc); } upd(tc,c); });
+      if(!th.cats) th.cats=[]; (h.cats||[]).forEach(c=>{ let tc=th.cats.find(x=>F(x.name)===F(c.name)); if(!tc){ tc=qRow(c.name); th.cats.push(tc); } upd(tc,c); }); });
+    iq.cats.forEach(c=>{ let tc=tq.cats.find(x=>F(x.name)===F(c.name)); if(!tc){ tc=qRow(c.name); tq.cats.push(tc); } upd(tc,c); });
+    // 3) المركز الذي جاء من القاعدة ولم يعد فيها (تحت قطاع موجود في الملف) يُحذف
+    if(del) tq.hos.forEach(th=>{ const ih=iq.hos.find(x=>F(x.name)===F(th.name)); if(!ih) return;
+      th.centers=th.centers.filter(tc=>{ if(tc.db&&!ih.centers.some(c=>F(c.name)===F(tc.name))){ st.removed.push(`${tq.label}: «${tc.name}» من ${th.name}`); return false; } return true; }); });
     st.updated.push(tq.label); });
   T.source='db'; normQ(T); return st;
 }
 function qmWire(r){ const sel=document.getElementById('qmT'), P=document.getElementById('qmP'); if(!sel) return;
       const prev=()=>{ const T=state.reports.find(x=>x.id===sel.value); if(!T){ P.innerHTML='يُضاف تقريراً جديداً، وتبقى تقاريرك كما هي.'; return; }
-        const add=[], up=[], keep=[]; r.qs.forEach(q=>{ const t=qFind(T.qs,q); if(!t){ if(qHas(q)) add.push(q.label); } else if(qHas(q)) up.push(t.label); else keep.push(t.label); });
-        P.innerHTML=`<b>يُضاف:</b> ${add.length?esc(add.join('، ')):'لا شيء'}<br><b>تتحدّث أعداد البلاغات ومدة الإغلاق في:</b> ${up.length?esc(up.join('، ')):'لا شيء'}<br>${keep.length?`<b>يبقى كما هو:</b> ${esc(keep.join('، '))}<br>`:''}ويبقى متوسط الرضا وأسماء الأرباع وإعداد «يظهر في الإنفوجرافيك»، وكل صف أضفته يدوياً.`; };
+        const D=JSON.parse(JSON.stringify(T)); const st=qMergeInto(D,{qs:r.qs.map(q=>{ const c=JSON.parse(JSON.stringify(q)); delete c._n; return c; })});
+        const L=(t,a)=>a.length?`<b>${t}:</b> ${a.map(esc).join('، ')}<br>`:'';
+        P.innerHTML=`${L('يُضاف',st.added)||'<b>يُضاف:</b> لا شيء<br>'}${L('تتحدّث أعداد البلاغات ومدة الإغلاق في',st.updated)}${L('يبقى كما هو',st.kept)}${L('يُنقل لأن قطاعه تغيّر في القاعدة (مع الرضا)',st.moved)}${L('يُحذف لأنه لم يعد في القاعدة',st.removed)}<span>متوسط الرضا الذي عبّأته لا يتغير، والصفوف التي أضفتها يدوياً لا تُحذف.</span>`; };
       sel.addEventListener('change',prev); prev(); }
 function qImportBridge(data){
   const inc=JSON.parse(JSON.stringify(data.report)); (inc.qs||[]).forEach((q,i)=>{ q._n=(data.counts||[])[i]||0; });
@@ -2928,10 +2952,10 @@ function qImportBridge(data){
     <p class="hint">${data.dur?'':'لم يكن في القاعدة «تاريخ الحل» فبقيت مدة الإغلاق للتعبئة. '}متوسط الرضا لا يوجد في القاعدة، فعبّئه في صفحة الإدخال للأرباع الجديدة.</p>`,
 
     actions:[{label:'تنفيذ',cls:'primary',run:()=>{ const id=(document.getElementById('qmT')||{}).value||'';
-      if(!id){ r.qs.forEach(q=>delete q._n); state.reports.push(r); state.current=state.reports.length-1; view='edit'; qIdx=0; save(); renderAll(); toast('أُضيف التقرير الربعي'); return; }
+      if(!id){ r.qs.forEach(q=>{ delete q._n; qMarkDb(q); }); state.reports.push(r); state.current=state.reports.length-1; view='edit'; qIdx=0; save(); renderAll(); toast('أُضيف التقرير الربعي'); return; }
       const T=state.reports.find(x=>x.id===id); const st=qMergeInto(T,{qs:r.qs.map(q=>{ const c=JSON.parse(JSON.stringify(q)); delete c._n; return c; })});
       state.current=state.reports.indexOf(T); view='edit'; qIdx=st.added.length?Math.max(0,T.qs.findIndex(q=>q.label===st.added[st.added.length-1])):qIdx; save(); renderAll();
-      toast(`دُمج: ${st.added.length} ربع جديد، و${st.updated.length} ربع تحدّث`); }},{label:'إلغاء'}]});
+      toast(`دُمج: ${st.added.length} ربع جديد، و${st.updated.length} ربع تحدّث${st.moved.length?`، ونُقل ${st.moved.length} مركز`:''}${st.removed.length?`، وحُذف ${st.removed.length}`:''}`); }},{label:'إلغاء'}]});
   setTimeout(()=>{ const sel=document.getElementById('qmT'); if(sel&&!sel._w){ sel._w=1; qmWire(r); } },0);
 }
 
