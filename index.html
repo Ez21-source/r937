@@ -634,9 +634,9 @@ function load(){
   return seedState();
 }
 let saveTimer=null;
-const APP_VER='22';
+const APP_VER='23';
 const UI_KEY='rep937-ui-v1';
-const INFO_DEF={v:4,tpl:'A',cols:3,org1:'تجمع مكة المكرمة الصحي',org2:'الرعاية الصحية الأولية',org3:'تجربة المستفيد',title:'{اسم_التقرير}',sub:'{الفترة} ({تاريخ_الفترة}) مقارنةً بـ {الفترة_السابقة}',tag:'إجمالي البلاغات · رضا المستفيد · مستوى الخدمة',by:'عبدالعزيز الوذيناني',sup:'منيرة المزيني',date:'',logo:'',cTotal:'#1E88C8',cSat:'#7CB342',cSl:'#1B3A5C',navy:'#1B3A5C',cFoot:'#5378C0',t1:80,t2:90,prevBar:true,prevVal:true,chg:true,rank:true,strip:true,secSub:true,grpHead:true,satParts:true,q:3,font:'plex',fsize:100,kpis:[['total',true],['sat',true],['sl',true]],secs:{},order:[]};
+const INFO_DEF={s1:85,s2:90,v:4,tpl:'A',cols:3,org1:'تجمع مكة المكرمة الصحي',org2:'الرعاية الصحية الأولية',org3:'تجربة المستفيد',title:'{اسم_التقرير}',sub:'{الفترة} ({تاريخ_الفترة}) مقارنةً بـ {الفترة_السابقة}',tag:'إجمالي البلاغات · رضا المستفيد · مستوى الخدمة',by:'عبدالعزيز الوذيناني',sup:'منيرة المزيني',date:'',logo:'',cTotal:'#1E88C8',cSat:'#7CB342',cSl:'#1B3A5C',navy:'#1B3A5C',cFoot:'#5378C0',t1:80,t2:90,prevBar:true,prevVal:true,chg:true,rank:true,strip:true,secSub:true,grpHead:true,satParts:true,q:3,font:'plex',fsize:100,kpis:[['total',true],['sat',true],['sl',true]],secs:{},order:[]};
 const RF_DEF={limit:0,hideGroups:[],cmp:'one'};
 function fixState(s){
   if(s.info && s.info.v===3){ s.info.v=4; s.info.grpHead=true; Object.values(s.info.secs||{}).forEach(x=>{ delete x.top; }); }
@@ -1505,13 +1505,14 @@ function igXlsxStyles(c){
     xf(164,7,0,1,'center'),      //19 kpi pct
     xf(0,3,0,0,'right'),         //20 foot
     xf(164,0,0,1,'center'),      //21 prev pct (gray)
-    xf(3,6,0,1,'center')         //22 prev int (gray)
+    xf(3,6,0,1,'center'),        //22 prev int (gray)
+    xf(164,5,9,1,'center')       //23 pct orange (الرضا)
   ];
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
 <numFmts count="3"><numFmt numFmtId="164" formatCode="0.00%"/><numFmt numFmtId="165" formatCode="[Red]▲ 0.0%;[Color10]▼ 0.0%;0%"/><numFmt numFmtId="166" formatCode="[Color10]▲ 0.00;[Red]▼ 0.00;0"/></numFmts>
 <fonts count="8"><font><sz val="11"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="18"/><color rgb="${h(c.navy)}"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="13"/><color rgb="${h(c.cTotal)}"/><name val="Calibri"/><family val="2"/></font><font><sz val="10"/><color rgb="FF6B7B8A"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="12"/><color rgb="FFFFFFFF"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="11"/><color rgb="FF1C2B39"/><name val="Calibri"/><family val="2"/></font><font><sz val="10"/><color rgb="FF8A97A4"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="14"/><color rgb="${h(c.cTotal)}"/><name val="Calibri"/><family val="2"/></font></fonts>
-<fills count="9"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>${fill(h(c.cTotal))}${fill(h(c.cSat))}${fill(h(c.cSl))}${fill('FFEEF3F8')}${fill('FFFCE3E3')}${fill('FFDCEEFB')}${fill('FFDDF0D2')}</fills>
+<fills count="10"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>${fill(h(c.cTotal))}${fill(h(c.cSat))}${fill(h(c.cSl))}${fill('FFEEF3F8')}${fill('FFFCE3E3')}${fill('FFDCEEFB')}${fill('FFDDF0D2')}${fill('FFFFE8C7')}</fills>
 <borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>${B}</borders>
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
 <cellXfs count="${X.length}">${X.join('')}</cellXfs>
@@ -1525,6 +1526,7 @@ function igXlsxSheet(rep){
   const merge=(r1,c1,r2,c2,s)=>{ if(r1===r2&&c1===c2) return; merges.push(`${colName(c1)}${r1}:${colName(c2)}${r2}`); for(let r=r1;r<=r2;r++) for(let k=c1;k<=c2;k++) if(!cells.has(r*1000+k)) put(r,k,null,s); };
   const chg=(a,b,isR)=> a==null||b==null ? null : isR ? Math.round((b-a)*1e4)/100 : (a ? (b-a)/a : null);
   const rateS=v=> v==null?10 : v*100<c.t1?11 : v*100<c.t2?12 : 13;
+  const satS=v=>{ const [a,b]=satT(); return v==null?10 : v*100<a?11 : v*100<b?23 : 13; };
   const ncol=c.tpl==='A'?c.cols:Math.min(c.cols,2), W=5, last=Math.max(4,ncol*(W+1)-2);
   put(1,0,D.title,1); merge(1,0,1,last,1); heights[1]=32;
   let r=2;
@@ -1552,7 +1554,7 @@ function igXlsxSheet(rep){
       ['#',entL[s.entity],P[1].label,P[0].label,'التغيّر'].forEach((t,k)=>put(top+1,c0+k,t,7));
       s.rows.forEach((x,n)=>{ const rr=top+2+n;
         put(rr,c0,n+1,16); put(rr,c0+1,x.name,8);
-        put(rr,c0+2,x.v??null,s.isRate?rateS(x.v):9); put(rr,c0+3,x.p??null,s.isRate?21:22); put(rr,c0+4,chg(x.p,x.v,s.isRate),s.isRate?15:14); });
+        put(rr,c0+2,x.v??null,s.isRate?(s.metric==='sat'?satS(x.v):rateS(x.v)):9); put(rr,c0+3,x.p??null,s.isRate?21:22); put(rr,c0+4,chg(x.p,x.v,s.isRate),s.isRate?15:14); });
       if(!s.rows.length){ put(top+2,c0,'لا توجد بيانات',8); merge(top+2,c0,top+2,c0+W-1,8); }
       maxN=Math.max(maxN,s.rows.length||1);
       widths[c0]=5; widths[c0+1]=Math.max(widths[c0+1]||0, s.entity==='category'?44:30); widths[c0+2]=13; widths[c0+3]=13; widths[c0+4]=12; widths[c0+5]=2;
@@ -1630,6 +1632,11 @@ function igData(rep){
 const igF1=v=>v==null?'—':(v*100).toFixed(2)+'%';
 const igFi=v=>v==null?'—':Math.round(v).toLocaleString('en-US');
 const igRc=v=>{ const c=state.info; return v==null?'#B8C2CC':v*100<c.t1?'#E0393E':v*100<c.t2?'#1E88C8':'#7CB342'; };
+/* v23: ألوان الرضا ثلاثة: أخضر من s2 فأعلى، برتقالي من s1 إلى أقل من s2، أحمر أقل من s1 (للرضا فقط؛ النسب الأخرى بإعدادها) */
+const satT=()=>{ const c=state.info||{}; return [+c.s1||85, +c.s2||90]; };
+const satBar=v=>{ const [a,b]=satT(); return v==null?'#B8C2CC':v*100>=b?'#7CB342':v*100>=a?'#E39B2D':'#E0393E'; };
+const satBg=v=>{ const [a,b]=satT(); return v==null?'#F3F5F7':v*100>=b?'#DDF0D2':v*100>=a?'#FFE8C7':'#F8C9C9'; };
+const igSc=(s,v)=>s&&s.metric==='sat'?satBar(v):igRc(v);
 function igChg(a,b,isRate){
   if(a==null||b==null) return null;
   const d=b-a; if(Math.abs(d)<1e-9) return {txt:'0',good:null,up:null};
@@ -1659,7 +1666,7 @@ function igGroupHeads(D, wrap){
 /* ===== A: like the attached file ===== */
 function igA(rep){
   const D=igData(rep), P=D.P, c=D.c, el=document.createElement('div'), NAVY=c.navy;
-  const sub=(lbl,v,p)=>`<div class="sb"><div class="sbh"><span>${lbl}</span><b>${igF1(v)}</b>${igPill(igChg(p,v,true))}</div><div class="tr"><i style="width:${(v||0)*100}%;background:${igRc(v)}"></i></div>${c.prevBar?`<div class="tr th"><i style="width:${(p||0)*100}%"></i></div>`:''}</div>`;
+  const sub=(lbl,v,p)=>`<div class="sb"><div class="sbh"><span>${lbl}</span><b>${igF1(v)}</b>${igPill(igChg(p,v,true))}</div><div class="tr"><i style="width:${(v||0)*100}%;background:${satBar(v)}"></i></div>${c.prevBar?`<div class="tr th"><i style="width:${(p||0)*100}%"></i></div>`:''}</div>`;
   const K={
     total:()=>`<div class="kc" style="--t:${c.cTotal}"><span class="tag">إجمالي البلاغات</span><div class="big">${igFi(D.k.total[1])}</div>${c.chg?igPill(igChg(D.k.total[0],D.k.total[1],false)):''}<div class="note">${esc(P[0].label)}: ${igFi(D.k.total[0])} بلاغ</div></div>`,
     sat:()=>{ const parts=c.satParts && (D.sat[1].comm!=null||D.sat[1].proc!=null);
@@ -1669,7 +1676,7 @@ function igA(rep){
   const grid=c.rank?'24px minmax(0,1.6fr) minmax(0,1fr) 76px':'minmax(0,1.6fr) minmax(0,1fr) 76px';
   const sec=s=>{ const mx=s.isRate?1:Math.max(1,...s.rows.map(x=>Math.max(x.v||0,c.prevBar?(x.p||0):0)));
     return `<div class="sc" style="--c:${igCol(s)}"><div class="sh"><div class="ib">${igIco(s)}</div><div style="flex:1;min-width:0"><h3>${esc(s.title)}</h3>${c.secSub?`<small>${s.sub}</small>`:''}</div>${s.tot!=null?`<span class="tt2">${s.isRate?igF1(s.tot):igFi(s.tot)}</span>`:''}</div>
-     ${s.rows.length?s.rows.map((r,i)=>`<div class="row" style="grid-template-columns:${grid}${c.chg?' 62px':''}">${c.rank?`<span class="rk">${i+1}</span>`:''}<span class="nm${s.entity==='category'?' full':''}">${esc(r.name)}${s.metric==='sat'&&r.n!=null?`<small>${igFi(r.n)} بلاغ</small>`:''}</span><div><div class="tr"><i style="width:${Math.min(100,(r.v||0)/mx*100)}%;background:${s.isRate?igRc(r.v):c.cTotal}"></i></div>${c.prevBar?`<div class="tr th"><i style="width:${Math.min(100,(r.p||0)/mx*100)}%"></i></div>`:''}</div><span class="vv">${s.isRate?igF1(r.v):igFi(r.v)}${c.prevVal?`<small>${igPrevLbl(P)}: ${s.isRate?igF1(r.p):igFi(r.p)}</small>`:''}</span>${c.chg?igPill(igChg(r.p,r.v,s.isRate)):''}</div>`).join(''):`<div class="none">لا توجد بيانات</div>`}</div>`; };
+     ${s.rows.length?s.rows.map((r,i)=>`<div class="row" style="grid-template-columns:${grid}${c.chg?' 62px':''}">${c.rank?`<span class="rk">${i+1}</span>`:''}<span class="nm${s.entity==='category'?' full':''}">${esc(r.name)}${s.metric==='sat'&&r.n!=null?`<small>${igFi(r.n)} بلاغ</small>`:''}</span><div><div class="tr"><i style="width:${Math.min(100,(r.v||0)/mx*100)}%;background:${s.isRate?igSc(s,r.v):c.cTotal}"></i></div>${c.prevBar?`<div class="tr th"><i style="width:${Math.min(100,(r.p||0)/mx*100)}%"></i></div>`:''}</div><span class="vv">${s.isRate?igF1(r.v):igFi(r.v)}${c.prevVal?`<small>${igPrevLbl(P)}: ${s.isRate?igF1(r.p):igFi(r.p)}</small>`:''}</span>${c.chg?igPill(igChg(r.p,r.v,s.isRate)):''}</div>`).join(''):`<div class="none">لا توجد بيانات</div>`}</div>`; };
   el.innerHTML=`<style>
   .igA{width:1520px;background:#F6F9FC;font-family:${igFontStack()};direction:rtl;color:#1C2B39;padding:26px 30px 0;line-height:1.45}
   .igA .hd{display:grid;grid-template-columns:1fr 2fr 1fr;align-items:center;margin-bottom:22px}
@@ -1727,7 +1734,7 @@ function igB(rep){
   const sec=s=>{ const mx=s.isRate?1:Math.max(1,...s.rows.map(x=>Math.max(x.v||0,x.p||0)));
     return `<div class="sc"><div class="sh">${igIco(s)}<h3>${esc(s.title)}</h3>${c.secSub?`<small>${s.sub}</small>`:''}</div>
      ${c.prevBar?`<div class="lgd"><span><i style="background:${c.cTotal}"></i>${esc(P[1].label)}</span><span><i style="background:${NAVY};width:2px"></i>${esc(P[0].label)}</span></div>`:''}
-     ${s.rows.map((r,i)=>`<div class="row${s.entity==='category'?' full':''}">${c.rank?`<span class="rk">${i+1}</span>`:''}<span>${esc(r.name)}</span><div class="bar"><i style="width:${(r.v||0)/mx*100}%;background:${s.isRate?igRc(r.v):c.cTotal}"></i>${c.prevBar&&r.p!=null?`<u style="right:${Math.min(99.5,r.p/mx*100)}%"></u>`:''}</div><span class="v" style="color:${s.isRate?igRc(r.v):NAVY}">${s.isRate?igF1(r.v):igFi(r.v)}</span>${c.chg?igPill(igChg(r.p,r.v,s.isRate)):''}</div>`).join('')||'<div class="none">لا توجد بيانات</div>'}</div>`; };
+     ${s.rows.map((r,i)=>`<div class="row${s.entity==='category'?' full':''}">${c.rank?`<span class="rk">${i+1}</span>`:''}<span>${esc(r.name)}</span><div class="bar"><i style="width:${(r.v||0)/mx*100}%;background:${s.isRate?igSc(s,r.v):c.cTotal}"></i>${c.prevBar&&r.p!=null?`<u style="right:${Math.min(99.5,r.p/mx*100)}%"></u>`:''}</div><span class="v" style="color:${s.isRate?igSc(s,r.v):NAVY}">${s.isRate?igF1(r.v):igFi(r.v)}</span>${c.chg?igPill(igChg(r.p,r.v,s.isRate)):''}</div>`).join('')||'<div class="none">لا توجد بيانات</div>'}</div>`; };
   el.innerHTML=`<style>
   .igB{width:1520px;display:grid;grid-template-columns:380px 1fr;font-family:${igFontStack()};direction:rtl;color:#1C2B39;background:#F3F6FA;line-height:1.45}
   .igB .sd{background:linear-gradient(180deg,${NAVY},#12283F);color:#fff;padding:34px 30px;display:flex;flex-direction:column;gap:22px}
@@ -1767,7 +1774,7 @@ function igC(rep){
   const kp=x=>{ const [l,v,isR]=K[x]; return `<div class="kp"><div class="l">${l}</div><div class="v">${isR?igF1(v[1]):igFi(v[1])}</div><div class="s">${c.chg?igPill(igChg(v[0],v[1],isR)):''}<span>${esc(P[0].label)}: ${isR?igF1(v[0]):igFi(v[0])}</span></div></div>`; };
   const sec=s=>{ const vals=s.rows.flatMap(r=>[r.v,r.p]).filter(x=>x!=null); const lo=s.isRate&&vals.length?Math.max(0,Math.floor((Math.min(...vals)-.05)*10)/10):0, hi=s.isRate?1:Math.max(1,...vals); const pos=v=>((v-lo)/((hi-lo)||1)*100);
     return `<div class="sc"><h3>${igIco(s)}${esc(s.title)}${c.secSub?`<small>${s.sub}</small>`:''}</h3>${s.rows.map((r,i)=>{ const a=r.p, b=r.v, good=s.isRate?(b>=(a??b)):(b<=(a??b)), col=good?'#2E7D32':'#C62828';
-      return `<div class="row${s.entity==='category'?' full':''}">${c.rank?`<span class="rk">${i+1}</span>`:''}<span>${esc(r.name)}</span><div class="db">${a!=null&&b!=null?`<b style="right:${Math.min(pos(a),pos(b))}%;width:${Math.abs(pos(a)-pos(b))}%;background:${col}"></b>`:''}${a!=null?`<i style="right:${pos(a)}%;background:#AFC4D8"></i>`:''}${b!=null?`<i style="right:${pos(b)}%;background:${s.isRate?igRc(b):c.cTotal}"></i>`:''}</div><span class="v">${s.isRate?igF1(b):igFi(b)}</span></div>`; }).join('')||'<div class="none">لا توجد بيانات</div>'}</div>`; };
+      return `<div class="row${s.entity==='category'?' full':''}">${c.rank?`<span class="rk">${i+1}</span>`:''}<span>${esc(r.name)}</span><div class="db">${a!=null&&b!=null?`<b style="right:${Math.min(pos(a),pos(b))}%;width:${Math.abs(pos(a)-pos(b))}%;background:${col}"></b>`:''}${a!=null?`<i style="right:${pos(a)}%;background:#AFC4D8"></i>`:''}${b!=null?`<i style="right:${pos(b)}%;background:${s.isRate?igSc(s,b):c.cTotal}"></i>`:''}</div><span class="v">${s.isRate?igF1(b):igFi(b)}</span></div>`; }).join('')||'<div class="none">لا توجد بيانات</div>'}</div>`; };
   el.innerHTML=`<style>
   .igC{width:1240px;background:#fff;font-family:${igFontStack()};direction:rtl;color:#1C2B39;line-height:1.45}
   .igC .hd{background:linear-gradient(120deg,${c.cTotal},${NAVY});color:#fff;padding:30px 40px 90px;display:flex;justify-content:space-between;align-items:flex-start;gap:20px}
@@ -1803,7 +1810,7 @@ function igD(rep){
   const D=igData(rep), P=D.P, c=D.c, el=document.createElement('div'), NAVY=c.navy;
   const heat=v=>v==null?'#F3F5F7':v*100<c.t1-10?'#F8C9C9':v*100<c.t1?'#FCE3E3':v*100<c.t2?'#DCEEFB':'#DDF0D2';
   const K={total:['إجمالي البلاغات',D.k.total,false],sat:['متوسط رضا المستفيد',D.k.sat,true],sl:['مستوى الخدمة',D.k.sl,true]};
-  const sec=s=>`<table><caption>${esc(s.title)}</caption><thead><tr>${c.rank?'<th>#</th>':''}<th>${s.entity==='category'?'التصنيف':s.entity==='hospital'?'القطاع':'المركز'}</th><th>${esc(P[1].label)}</th><th>${esc(P[0].label)}</th>${c.chg?'<th>التغيّر</th>':''}</tr></thead><tbody>${s.rows.map((r,i)=>`<tr>${c.rank?`<td class="rk">${i+1}</td>`:''}<td>${esc(r.name)}</td><td class="h" style="background:${s.isRate?heat(r.v):'transparent'}">${s.isRate?igF1(r.v):igFi(r.v)}</td><td style="color:#8A97A4">${s.isRate?igF1(r.p):igFi(r.p)}</td>${c.chg?`<td>${igPill(igChg(r.p,r.v,s.isRate))}</td>`:''}</tr>`).join('')||`<tr><td colspan="5" style="color:#9AA6B2">لا توجد بيانات</td></tr>`}</tbody></table>`;
+  const sec=s=>`<table><caption>${esc(s.title)}</caption><thead><tr>${c.rank?'<th>#</th>':''}<th>${s.entity==='category'?'التصنيف':s.entity==='hospital'?'القطاع':'المركز'}</th><th>${esc(P[1].label)}</th><th>${esc(P[0].label)}</th>${c.chg?'<th>التغيّر</th>':''}</tr></thead><tbody>${s.rows.map((r,i)=>`<tr>${c.rank?`<td class="rk">${i+1}</td>`:''}<td>${esc(r.name)}</td><td class="h" style="background:${s.isRate?(s.metric==='sat'?satBg(r.v):heat(r.v)):'transparent'}">${s.isRate?igF1(r.v):igFi(r.v)}</td><td style="color:#8A97A4">${s.isRate?igF1(r.p):igFi(r.p)}</td>${c.chg?`<td>${igPill(igChg(r.p,r.v,s.isRate))}</td>`:''}</tr>`).join('')||`<tr><td colspan="5" style="color:#9AA6B2">لا توجد بيانات</td></tr>`}</tbody></table>`;
   el.innerHTML=`<style>
   .igD{width:1240px;background:#fff;font-family:${igFontStack()};direction:rtl;color:#1C2B39;padding:30px 36px;line-height:1.45}
   .igD .hd{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid ${NAVY};padding-bottom:14px;gap:20px}
@@ -1825,7 +1832,8 @@ function igD(rep){
   </style>
   <div class="igD"><div class="hd"><div><div class="org">${[c.org1,c.org2,c.org3].filter(Boolean).map(esc).join(' · ')}</div><h1>${esc(D.title)}</h1>${D.sub?`<h2>${esc(D.sub)}</h2>`:''}</div>${igLogo(64)}</div>
    ${D.kpis.length?`<div class="kr">${D.kpis.map(x=>{ const [l,v,isR]=K[x]; return `<div><div><div class="l">${l}</div><div class="v">${isR?igF1(v[1]):igFi(v[1])}</div></div><div>${c.chg?igPill(igChg(v[0],v[1],isR)):''}<div class="p">${esc(P[0].label)}: ${isR?igF1(v[0]):igFi(v[0])}</div></div></div>`; }).join('')}</div>`:''}
-   <div class="key">ألوان النسب: <span><i style="background:#F8C9C9"></i>أقل من ${c.t1-10}%</span><span><i style="background:#FCE3E3"></i>${c.t1-10}–${c.t1}%</span><span><i style="background:#DCEEFB"></i>${c.t1}–${c.t2}%</span><span><i style="background:#DDF0D2"></i>${c.t2}% فأعلى</span></div>
+   <div class="key">ألوان الرضا: <span><i style="background:#DDF0D2"></i>${satT()[1]}% فأعلى</span><span><i style="background:#FFE8C7"></i>${satT()[0]}% إلى أقل من ${satT()[1]}%</span><span><i style="background:#F8C9C9"></i>أقل من ${satT()[0]}%</span></div>
+   <div class="key">ألوان النسب الأخرى: <span><i style="background:#F8C9C9"></i>أقل من ${c.t1-10}%</span><span><i style="background:#FCE3E3"></i>${c.t1-10}–${c.t1}%</span><span><i style="background:#DCEEFB"></i>${c.t1}–${c.t2}%</span><span><i style="background:#DDF0D2"></i>${c.t2}% فأعلى</span></div>
    <div class="g">${igGroupHeads(D,sec)}</div>
    <div class="ft"><span>${[c.by&&'إعداد: '+esc(c.by),c.sup&&'إشراف: '+esc(c.sup)].filter(Boolean).join(' · ')}</span><span>تاريخ الإعداد: ${esc(D.date)}</span></div></div>`;
   return el;
@@ -1872,8 +1880,10 @@ function igPanelBody(rep){
     <div><span class="fld-lbl">حجم الخط</span><div class="chips">${RF_SIZES.map(([v,l])=>`<button type="button" class="chip" data-igfs="${v}" aria-pressed="${+c.fsize===v}">${l}</button>`).join('')}</div></div>
     <p class="hint" style="margin:0">الخط يُضمَّن في الصورة وPDF. «جنى» مضمَّن في التطبيق ويعمل بدون إنترنت، وبقية الخطوط تحتاج اتصالاً عند أول استخدام.</p>
     <div class="colors">${[['cTotal','البلاغات والعناوين'],['cSat','رضا المستفيد'],['cSl','مستوى الخدمة'],['navy','اللون الداكن'],['cFoot','التذييل']].map(([k,l])=>`<label><input type="color" data-ig="${k}" value="${esc(c[k])}">${l}</label>`).join('')}</div>
-    <div class="two"><div><label class="fld-lbl" for="ig_t1">أحمر تحت (%)</label><input class="inp" type="number" min="0" max="100" id="ig_t1" data-ig="t1" value="${c.t1}"></div><div><label class="fld-lbl" for="ig_t2">أخضر من (%)</label><input class="inp" type="number" min="0" max="100" id="ig_t2" data-ig="t2" value="${c.t2}"></div></div>
-    <p class="hint" style="margin:0">ألوان النسب: أحمر تحت ${c.t1}%، وأزرق حتى ${c.t2}%، وأخضر من ${c.t2}% فأعلى.</p>
+    <div class="two"><div><label class="fld-lbl" for="ig_s1">رضا برتقالي من (%)</label><input class="inp" type="number" min="0" max="100" id="ig_s1" data-ig="s1" value="${satT()[0]}"></div><div><label class="fld-lbl" for="ig_s2">رضا أخضر من (%)</label><input class="inp" type="number" min="0" max="100" id="ig_s2" data-ig="s2" value="${satT()[1]}"></div></div>
+    <p class="hint" style="margin:0">ألوان الرضا: أخضر من ${satT()[1]}% فأعلى، وبرتقالي من ${satT()[0]}% إلى أقل من ${satT()[1]}%، وأحمر أقل من ${satT()[0]}%.</p>
+    <div class="two"><div><label class="fld-lbl" for="ig_t1">النسب الأخرى: أحمر تحت (%)</label><input class="inp" type="number" min="0" max="100" id="ig_t1" data-ig="t1" value="${c.t1}"></div><div><label class="fld-lbl" for="ig_t2">النسب الأخرى: أخضر من (%)</label><input class="inp" type="number" min="0" max="100" id="ig_t2" data-ig="t2" value="${c.t2}"></div></div>
+    <p class="hint" style="margin:0">النسب الأخرى مثل «داخل مستوى الخدمة»: أحمر تحت ${c.t1}%، وأزرق حتى ${c.t2}%، وأخضر من ${c.t2}% فأعلى.</p>
     <div class="togs">${tog('rank','أرقام الترتيب')}${tog('prevBar','شريط الفترة السابقة تحت كل شريط')}${tog('prevVal','قيمة الفترة السابقة تحت كل رقم')}${tog('secSub','سطر الوصف تحت عنوان القسم')}${tog('strip','اختصار الأسماء (حذف «مركز صحي» و«المراكز التابعة لـ»)')}</div>`;
   if(igTab==='exp') return `<div><label class="fld-lbl" for="ig_q">وضوح الصورة</label><select class="inp" id="ig_q" data-ig="q">${opt([[2,'عادي (×2)'],[3,'عالٍ (×3) — موصى به'],[4,'عالٍ جداً (×4)']],c.q)}</select></div>
     <p class="hint" style="margin:0">كلما زاد الوضوح كبر حجم الملف. الآيفون يحدّ حجم الصورة، فيُخفَّض الوضوح تلقائياً عند الحاجة. الخط يُضمَّن في الصورة إذا كان الإنترنت متاحاً.</p>
@@ -1912,8 +1922,8 @@ function igLogoPick(e){
 function igOrderKeys(rep){ return igDefs(rep).map(d=>d.key); }
 function igInput(t){
   const d=t.dataset, c=state.info;
-  if(d.ig!=null){ let v=t.type==='checkbox'?t.checked:t.value; if(['cols','t1','t2'].includes(d.ig)) v=+v; c[d.ig]=v; save();
-    if(d.ig==='tpl'||d.ig==='t1'||d.ig==='t2') igRedrawPanel();
+  if(d.ig!=null){ let v=t.type==='checkbox'?t.checked:t.value; if(['cols','t1','t2','s1','s2'].includes(d.ig)) v=+v; c[d.ig]=v; save();
+    if(d.ig==='tpl'||d.ig==='t1'||d.ig==='t2'||d.ig==='s1'||d.ig==='s2') igRedrawPanel();
     if(d.ig==='q'){ c.q=+v; save(); return true; }
     if(d.ig==='font'){ save(); ensureFont(v).then(refreshInfo); return true; }
     refreshInfo(); return true; }
@@ -2261,9 +2271,9 @@ function qBuildInfo(rep,opt){
   const NAVY=c.navy||'#1B3A5C', QCOL=['#B7C2CD','#9CC9E8','#4FA3DA',NAVY];
   const mix=(a,b,t)=>{ const h=x=>[1,3,5].map(i=>parseInt(x.slice(i,i+2),16)); const A=h(a),B=h(/^#[0-9a-f]{6}$/i.test(b)?b:'#1B3A5C'); return '#'+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,'0')).join(''); };
   const qcol=i=>{ const k=SHOW.indexOf(i), n=SHOW.length; return n<=1?NAVY:mix('#9CC9E8',NAVY,k/(n-1)); };
-  const t1=+c.t1||80, t2=+c.t2||90;
-  const heat=v=> v==null?'#F1F4F7': v*100>=t2?'#DDF0E3': v*100>=t1?'#E3EFFA': v*100>=t1-10?'#FFF1D9':'#FBE1DF';
-  const heatT=v=> v==null?'#9AA6B2': v*100>=t2?'#1F7A43': v*100>=t1?'#1E6FA8': v*100>=t1-10?'#9A5B00':'#B3322D';
+  const t1=+c.t1||85, t2=+c.t2||90;
+  const heat=v=> v==null?'#F1F4F7': v*100>=t2?'#DDF0E3': v*100>=t1?'#FFF1D9':'#FBE1DF';
+  const heatT=v=> v==null?'#9AA6B2': v*100>=t2?'#1F7A43': v*100>=t1?'#9A5B00':'#B3322D';
   const bd=x=>`<bdi dir="ltr">${x}</bdi>`, fp=(v,dd=state.satDec??2)=>v==null?'—':(v*100).toFixed(dd)+'%';
   const GO='linear-gradient(to left,#2E9E5B,#E39B2D)';
   const stack=(o,h)=>{ const w=o.within||0, r=o.o48||0, t=w+r;
@@ -2304,7 +2314,7 @@ function qBuildInfo(rep,opt){
       <div class="kk"><span>إجمالي البلاغات</span><b>${fmtInt(T.count)}</b>${p?qChg(p.count,T.count,'count'):''}</div>
       <div class="kk"><span>متوسط الرضا</span><b>${bd(fp(T.sat))}</b>${p?qChg(p.sat,T.sat,'sat'):''}</div>
       <div class="kk"><span>مدة الإغلاق</span><div style="flex:1">${stack(T,14)}<div class="cln" style="font-size:12.5px">${clTxt(T)}</div></div>${p?qChg(qShare(p),qShare(T),'over'):''}</div>${xl(T)}</div>`; }).join('')}</div>`;
-  const key=`<div class="keyb"><span>إغلاق البلاغات المغلقة:</span><span><i style="background:linear-gradient(to left,#2E9E5B,#E39B2D)"></i>خلال 48 ساعة</span><span><i style="background:#D64545"></i>أكثر من 48 ساعة</span><span><i style="background:#D64545;border-radius:2px"></i>السطر الأحمر: مفتوحة أكثر من 48 ساعة</span><span>المثلث: كل ربع مقارنةً بالربع الذي قبله · الأحمر تراجع والأخضر تحسن · «ن» نقطة مئوية</span><span>ألوان الرضا: <span class="pl" style="background:#DDF0E3;color:#1F7A43">${t2}%+</span> <span class="pl" style="background:#E3EFFA;color:#1E6FA8">${t1}–${t2}</span> <span class="pl" style="background:#FFF1D9;color:#9A5B00">${t1-10}–${t1}</span> <span class="pl" style="background:#FBE1DF;color:#B3322D">&lt;${t1-10}</span></span></div>`;
+  const key=`<div class="keyb"><span>إغلاق البلاغات المغلقة:</span><span><i style="background:linear-gradient(to left,#2E9E5B,#E39B2D)"></i>خلال 48 ساعة</span><span><i style="background:#D64545"></i>أكثر من 48 ساعة</span><span><i style="background:#D64545;border-radius:2px"></i>السطر الأحمر: مفتوحة أكثر من 48 ساعة</span><span>المثلث: كل ربع مقارنةً بالربع الذي قبله · الأحمر تراجع والأخضر تحسن · «ن» نقطة مئوية</span><span>ألوان الرضا: <span class="pl" style="background:#DDF0E3;color:#1F7A43">${t2}% فأعلى</span> <span class="pl" style="background:#FFF1D9;color:#9A5B00">${t1}% إلى أقل من ${t2}%</span> <span class="pl" style="background:#FBE1DF;color:#B3322D">أقل من ${t1}%</span></span></div>`;
   const sub=Z.sub || `${SHOW.map(i=>rep.qs[i].label).join(' · ')} · كل ربع مقارنةً بالربع الذي قبله`;
   const title=igTok(c.title||'{اسم_التقرير}',rep);
   /* v17: رأس وذيل وتنويهات وعلامة مائية مثل «تنسيق التقرير» في القاعدة */
@@ -2504,16 +2514,18 @@ const Q_THEMES={navy:{l:'كحلي (الافتراضي)',navy:'#1B3A5C',cTotal:'#
   maroon:{l:'عنابي',navy:'#7A1F2B',cTotal:'#A33445',bg:'#FBF4F5'},gray:{l:'رمادي',navy:'#3F4A55',cTotal:'#6B7884',bg:'#F5F6F7'},bw:{l:'أبيض وأسود للطباعة',navy:'#222222',cTotal:'#555555',bg:'#FFFFFF'}};
 const QI_DEF={v:1,pv:1,xOp48:true,layout:'P',pSum:true,hcTop:5,theme:'navy',bg:'#F6F8FB',txt:'#1C2B39',hf:JSON.parse(JSON.stringify(Q_HF_DEF)),logoSize:72,logoPos:'left',logo2:'',notes:[],wm:{on:0,src:'logo',image:'',op:0.07},wmData:'',topC:3,topCat:5,clSort:'count',
   title:'التقرير الربعي لبلاغات 937',sub:'',org1:'تجمع مكة المكرمة الصحي',org2:'الرعاية الصحية الأولية',org3:'تجربة المستفيد',
-  by:'',sup:'',date:'',logo:'',font:'plex',fsize:100,navy:'#1B3A5C',cTotal:'#1E88C8',t1:80,t2:90,strip:true,q:3,paper:'a3',hosTop:0,hosOff:[],
+  by:'',sup:'',date:'',logo:'',font:'plex',fsize:100,navy:'#1B3A5C',cTotal:'#1E88C8',t1:85,t2:90,strip:true,q:3,paper:'a3',hosTop:0,hosOff:[],
   sOwn:false,sTitle:'',sSub:'',sOrg1:'',sOrg2:'',sOrg3:'',sDate:'',sFoot:'',sBy:true,
   sFs:100,sSum:5,sPer:1,sCover:true,sSummary:true,sHos:true,sCats:true};
 function fixQinfo(s){
   if(!s.qinfo || s.qinfo.v!==1){ const I=s.info||{}, old=(I.q)||{};
     s.qinfo={...QI_DEF, layout:'P', topC:old.topC||3, topCat:old.topCat||5, clSort:old.clSort||'count', sub:old.sub||'',
       org1:I.org1??QI_DEF.org1, org2:I.org2??QI_DEF.org2, org3:I.org3??QI_DEF.org3, by:I.by||'', sup:I.sup||'', logo:I.logo||'', font:I.font||'plex', fsize:I.fsize||100,
-      navy:I.navy||QI_DEF.navy, cTotal:I.cTotal||QI_DEF.cTotal, t1:I.t1||80, t2:I.t2||90, strip:I.strip!==false }; }
+      navy:I.navy||QI_DEF.navy, cTotal:I.cTotal||QI_DEF.cTotal, t1:85, t2:90, strip:I.strip!==false }; }
   if(!s.qinfo.pv){ s.qinfo.pv=1; s.qinfo.layout='P'; } // v16: صفحة لكل مستشفى صارت الشكل المعتمد
   s.qinfo={...QI_DEF,...s.qinfo}; if(!Array.isArray(s.qinfo.hosOff)) s.qinfo.hosOff=[];
+  if(s.qinfo.sv!==1){ s.qinfo.sv=1; s.qinfo.t1=85; s.qinfo.t2=90; } // v23: ألوان الرضا الثلاثة
+  if(s.info&&s.info.sv!==1){ s.info.sv=1; s.info.s1=85; s.info.s2=90; }
   s.qinfo.hf=qHF(s.qinfo); s.qinfo.wm={...QI_DEF.wm,...(s.qinfo.wm||{})}; if(!Array.isArray(s.qinfo.notes)) s.qinfo.notes=[];
   return s;
 }
@@ -2578,7 +2590,7 @@ function qiPanelBody(){
      <span class="hint" style="margin:0">تغيير أي لون يحوّل القالب إلى «مخصص».</span>
      <div><label class="fld-lbl" for="qi_font">الخط</label><select class="inp" id="qi_font" data-qi="font">${opt(Object.entries(RFONTS).map(([k,f])=>[k,f.l]),Z.font)}</select></div>
      <div><span class="fld-lbl">حجم الخط</span><div class="chips">${RF_SIZES.map(([v,l])=>`<button type="button" class="chip" data-qifs="${v}" aria-pressed="${+Z.fsize===v}">${l}</button>`).join('')}</div></div>
-     <div class="two"><div><label class="fld-lbl" for="qi_t1">رضا أزرق من (%)</label><input class="inp" type="number" min="0" max="100" id="qi_t1" data-qi="t1" value="${Z.t1}"></div><div><label class="fld-lbl" for="qi_t2">رضا أخضر من (%)</label><input class="inp" type="number" min="0" max="100" id="qi_t2" data-qi="t2" value="${Z.t2}"></div></div>`;
+     <div class="two"><div><label class="fld-lbl" for="qi_t1">رضا برتقالي من (%)</label><input class="inp" type="number" min="0" max="100" id="qi_t1" data-qi="t1" value="${Z.t1}"></div><div><label class="fld-lbl" for="qi_t2">رضا أخضر من (%)</label><input class="inp" type="number" min="0" max="100" id="qi_t2" data-qi="t2" value="${Z.t2}"></div></div>`;
   if(qiTab==='logo'){ const W=Z.wm||{};
     const seg=(k,arr)=>`<div class="chips">${arr.map(([v,l])=>`<button type="button" class="chip" data-${typeof v==='number'?'qiset':'qistr'}="${k}:${v}" aria-pressed="${String(Z[k])===String(v)}">${l}</button>`).join('')}</div>`;
     return `<div><span class="fld-lbl">الشعار</span><div class="logo-row">${Z.logo?`<img src="${Z.logo}" alt="الشعار">`:'<span class="mut" style="font-size:12.5px">لا يوجد شعار</span>'}<label class="btn sm">${Z.logo?'تغيير':'رفع صورة'}<input type="file" id="qiLogo" accept="image/*" hidden></label>${Z.logo?'<button type="button" class="btn sm ghost danger" data-qiact="logo-rm">إزالة</button>':''}</div></div>
