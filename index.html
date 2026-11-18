@@ -634,7 +634,7 @@ function load(){
   return seedState();
 }
 let saveTimer=null;
-const APP_VER='20';
+const APP_VER='21';
 const UI_KEY='rep937-ui-v1';
 const INFO_DEF={v:4,tpl:'A',cols:3,org1:'تجمع مكة المكرمة الصحي',org2:'الرعاية الصحية الأولية',org3:'تجربة المستفيد',title:'{اسم_التقرير}',sub:'{الفترة} ({تاريخ_الفترة}) مقارنةً بـ {الفترة_السابقة}',tag:'إجمالي البلاغات · رضا المستفيد · مستوى الخدمة',by:'عبدالعزيز الوذيناني',sup:'منيرة المزيني',date:'',logo:'',cTotal:'#1E88C8',cSat:'#7CB342',cSl:'#1B3A5C',navy:'#1B3A5C',cFoot:'#5378C0',t1:80,t2:90,prevBar:true,prevVal:true,chg:true,rank:true,strip:true,secSub:true,grpHead:true,satParts:true,q:3,font:'plex',fsize:100,kpis:[['total',true],['sat',true],['sl',true]],secs:{},order:[]};
 const RF_DEF={limit:0,hideGroups:[],cmp:'one'};
@@ -643,6 +643,7 @@ function fixState(s){
   if(!s.info || s.info.v!==4) s.info=JSON.parse(JSON.stringify(INFO_DEF));
   s.info={...JSON.parse(JSON.stringify(INFO_DEF)),...s.info}; if(!Array.isArray(s.info.kpis)||s.info.kpis.length!==3) s.info.kpis=JSON.parse(JSON.stringify(INFO_DEF.kpis));
   if(!s.openOn) s.openOn='weekly';
+  if(![0,1,2].includes(s.satDec)) s.satDec=2; // منازل الرضا العشرية في الإنفوجرافيك الربعي
   fixQinfo(s);
   s.rf={...RF_DEF,...(s.rf||{})}; if(!s.rf.cmp) s.rf.cmp='one'; if(!Array.isArray(s.rf.hideGroups)) s.rf.hideGroups=[];
   if(typeof s.autosave!=='boolean') s.autosave=true;
@@ -1968,6 +1969,10 @@ function renderPanel(){
       <div class="chips">${[['auto','تلقائي حسب الجهاز'],['light','خلفية فاتحة'],['dark','خلفية داكنة']].map(([v,l])=>`<button type="button" class="chip" data-themeset="${v}" aria-pressed="${getTheme()===v}">${l}</button>`).join('')}</div>
       <p class="hint" style="margin:0">يغيّر خلفية التطبيق فقط. التقرير والإنفوجرافيك يُصدَّران بخلفية فاتحة دائماً.</p>
     </div></section>
+    <section class="card pcard"><div class="card-head"><h3>منازل متوسط الرضا العشرية</h3></div><div class="pc-b">
+      <div class="chips">${[[0,'بدون: 85%'],[1,'منزلة: 85.3%'],[2,'منزلتان: 85.32%']].map(([v,l])=>`<button type="button" class="chip" data-satdec="${v}" aria-pressed="${state.satDec===v}">${l}</button>`).join('')}</div>
+      <p class="hint" style="margin:0">في كل مكان يظهر فيه متوسط الرضا في الإنفوجرافيك الربعي وشرائح العرض: بطاقات الأرباع، والمستشفيات، والمراكز، والتصانيف. فرق المقارنة بالربع السابق يبقى بمنزلة واحدة.</p>
+    </div></section>
     <section class="card pcard"><div class="card-head"><h3>التقرير الافتراضي</h3></div><div class="pc-b">
       <div class="field" style="max-width:420px"><label for="openOn">يُفتح عند تشغيل التطبيق</label><select class="inp" id="openOn" data-openon>${[['weekly','أحدث تقرير أسبوعي'],['last','آخر تقرير كان مفتوحاً']].map(([v,t])=>`<option value="${v}" ${state.openOn===v?'selected':''}>${t}</option>`).join('')}<optgroup label="تقرير محدد">${state.reports.map(r=>`<option value="${r.id}" ${state.openOn===r.id?'selected':''}>${esc(r.name)}</option>`).join('')}</optgroup></select></div>
       <p class="hint" style="margin:0">التقرير الجديد يُنشأ أسبوعياً افتراضياً.</p>
@@ -2048,6 +2053,7 @@ function onClickV2(b){
   if(b.id==='btnSave'||d.act==='save-now'){ saveNow(); return true; }
   if(b.id==='btnSide'){ openSide(); return true; }
   if(d.pexp){ runExport(d.pexp); return true; }
+  if(d.satdec!=null){ state.satDec=+d.satdec; save(); document.querySelectorAll('[data-satdec]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.satdec===d.satdec)); toast('حُفظت منازل الرضا'); return true; }
   if(d.themeset){ setTheme(d.themeset); document.querySelectorAll('[data-themeset]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.themeset===d.themeset)); return true; }
   if(d.theme){ state.info.theme=d.theme; save(); renderBody(); return true; }
   if(d.act==='info-reset'){ state.info={...INFO_DEF, hide:[]}; save(); renderBody(); toast('أُعيدت الإعدادات الافتراضية'); return true; }
@@ -2249,7 +2255,7 @@ function qBuildInfo(rep,opt){
   const t1=+c.t1||80, t2=+c.t2||90;
   const heat=v=> v==null?'#F1F4F7': v*100>=t2?'#DDF0E3': v*100>=t1?'#E3EFFA': v*100>=t1-10?'#FFF1D9':'#FBE1DF';
   const heatT=v=> v==null?'#9AA6B2': v*100>=t2?'#1F7A43': v*100>=t1?'#1E6FA8': v*100>=t1-10?'#9A5B00':'#B3322D';
-  const bd=x=>`<bdi dir="ltr">${x}</bdi>`, fp=(v,dd=1)=>v==null?'—':(v*100).toFixed(dd)+'%';
+  const bd=x=>`<bdi dir="ltr">${x}</bdi>`, fp=(v,dd=state.satDec??2)=>v==null?'—':(v*100).toFixed(dd)+'%';
   const GO='linear-gradient(to left,#2E9E5B,#E39B2D)';
   const stack=(o,h)=>{ const w=o.within||0, r=o.o48||0, t=w+r;
     return `<div class="stk" style="height:${h}px">${!t?'<span style="flex:1;background:#E3E9EF"></span>':`<span style="width:${w/t*100}%;background:${GO}"></span><span style="flex:1;background:#D64545"></span>`}</div>`; };
@@ -2287,7 +2293,7 @@ function qBuildInfo(rep,opt){
   const kpi=`<div class="kgrid" style="grid-template-columns:repeat(${N},1fr)">${SHOW.map(qi=>{ const T=qTot(rep.qs[qi]), p=PM(qi)?.T;
       return `<div class="card kq" style="--c:${qcol(qi)}"><div class="kqh">${esc(rep.qs[qi].label)}${qi>0?` <small>مقارنةً بـ ${esc(QV(qi))}</small>`:''}</div>
       <div class="kk"><span>إجمالي البلاغات</span><b>${fmtInt(T.count)}</b>${p?qChg(p.count,T.count,'count'):''}</div>
-      <div class="kk"><span>متوسط الرضا</span><b>${bd(fp(T.sat,2))}</b>${p?qChg(p.sat,T.sat,'sat'):''}</div>
+      <div class="kk"><span>متوسط الرضا</span><b>${bd(fp(T.sat))}</b>${p?qChg(p.sat,T.sat,'sat'):''}</div>
       <div class="kk"><span>مدة الإغلاق</span><div style="flex:1">${stack(T,14)}<div class="cln" style="font-size:12.5px">${clTxt(T)}</div></div>${p?qChg(qShare(p),qShare(T),'over'):''}</div>${xl(T)}</div>`; }).join('')}</div>`;
   const key=`<div class="keyb"><span>إغلاق البلاغات المغلقة:</span><span><i style="background:linear-gradient(to left,#2E9E5B,#E39B2D)"></i>خلال 48 ساعة</span><span><i style="background:#D64545"></i>أكثر من 48 ساعة</span><span><i style="background:#D64545;border-radius:2px"></i>السطر الأحمر: مفتوحة أكثر من 48 ساعة</span><span>المثلث: كل ربع مقارنةً بالربع الذي قبله · الأحمر تراجع والأخضر تحسن · «ن» نقطة مئوية</span><span>ألوان الرضا: <span class="pl" style="background:#DDF0E3;color:#1F7A43">${t2}%+</span> <span class="pl" style="background:#E3EFFA;color:#1E6FA8">${t1}–${t2}</span> <span class="pl" style="background:#FFF1D9;color:#9A5B00">${t1-10}–${t1}</span> <span class="pl" style="background:#FBE1DF;color:#B3322D">&lt;${t1-10}</span></span></div>`;
   const sub=Z.sub || `${SHOW.map(i=>rep.qs[i].label).join(' · ')} · كل ربع مقارنةً بالربع الذي قبله`;
@@ -2382,7 +2388,7 @@ function qBuildInfo(rep,opt){
       if(!x) return `<div class="card kq" style="--c:${qcol(qi)}">${head}<div class="none">لا توجد بيانات لهذا الربع</div></div>`;
       return `<div class="card kq" style="--c:${qcol(qi)}">${head}
         <div class="kk"><span>البلاغات</span><b>${fmtInt(x.count)}</b>${p?qChg(p.count,x.count,'count'):''}</div>
-        <div class="kk"><span>متوسط الرضا</span><b>${bd(fp(x.sat,1))}</b>${p?qChg(p.sat,x.sat,'sat'):''}</div>
+        <div class="kk"><span>متوسط الرضا</span><b>${bd(fp(x.sat))}</b>${p?qChg(p.sat,x.sat,'sat'):''}</div>
         <div class="kk"><span>مدة الإغلاق</span><div style="flex:1">${stack(x,12)}<div class="cln" style="font-size:12.5px">${clTxt(x)}</div></div>${p?qChg(qShare(p),qShare(x),'over'):''}</div>${xl(x)}</div>`; }).join('')}</div>`;
     const catTable=hk=>{
       const lw=[...SHOW].reverse().find(qi=>(hosOf(qi,hk.k)?.cats||[]).some(x=>x.count!=null||x.name));
