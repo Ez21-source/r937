@@ -1,6 +1,6 @@
 // غيّر رقم الإصدار عند تعديل ملفات التطبيق
 // يحذف نسخه القديمة فقط، ولا يلمس ذاكرة تطبيق القاعدة على نفس الموقع
-const VERSION = 'r937rep-v23';
+const VERSION = 'r937rep-v24';
 const APP_FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'maskable-512.png', 'apple-touch-icon.png', 'favicon.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(APP_FILES)).then(() => self.skipWaiting()));

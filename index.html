@@ -591,8 +591,14 @@ function normalizeReport(r){
     s.p = s.p||[]; while(s.p.length<2) s.p.push(emptyPeriod());
     s.p.forEach(p=>{p.summary=p.summary||{}; p.rows=p.rows||[];});
   });
+  satCountFill(r);
   return r;
 }
+// v24: عدد البلاغات في أقسام الرضا يُعبّأ تلقائياً من قسم البلاغات بنفس الاسم (للفترتين)، ويبقى ما عُبّئ يدوياً
+function satCountFill(r){ defsOf(r.type).filter(d=>d.metric==='sat'&&(d.cols||[]).includes('count')).forEach(d=>{
+  const C=r.sections[d.entity+'-count'], S=r.sections[d.key]; if(!C||!S) return;
+  S.p.forEach((p,pi)=>{ const M=new Map(((C.p[pi]||{}).rows||[]).filter(x=>x.count!=null).map(x=>[fold(x.name),x.count]));
+    p.rows.forEach(x=>{ if(x.count==null&&String(x.name||'').trim()&&M.has(fold(x.name))) x.count=M.get(fold(x.name)); }); }); }); }
 
 /* ---------- numbers ---------- */
 function toNum(v, ratio){
@@ -634,9 +640,9 @@ function load(){
   return seedState();
 }
 let saveTimer=null;
-const APP_VER='23';
+const APP_VER='24';
 const UI_KEY='rep937-ui-v1';
-const INFO_DEF={s1:85,s2:90,v:4,tpl:'A',cols:3,org1:'تجمع مكة المكرمة الصحي',org2:'الرعاية الصحية الأولية',org3:'تجربة المستفيد',title:'{اسم_التقرير}',sub:'{الفترة} ({تاريخ_الفترة}) مقارنةً بـ {الفترة_السابقة}',tag:'إجمالي البلاغات · رضا المستفيد · مستوى الخدمة',by:'عبدالعزيز الوذيناني',sup:'منيرة المزيني',date:'',logo:'',cTotal:'#1E88C8',cSat:'#7CB342',cSl:'#1B3A5C',navy:'#1B3A5C',cFoot:'#5378C0',t1:80,t2:90,prevBar:true,prevVal:true,chg:true,rank:true,strip:true,secSub:true,grpHead:true,satParts:true,q:3,font:'plex',fsize:100,kpis:[['total',true],['sat',true],['sl',true]],secs:{},order:[]};
+const INFO_DEF={s1:85,s2:90,logoSize:64,logoPos:'left',logo2:'',ftLogo:false,notes:[],wmData:'',v:4,tpl:'A',cols:3,org1:'تجمع مكة المكرمة الصحي',org2:'الرعاية الصحية الأولية',org3:'تجربة المستفيد',title:'{اسم_التقرير}',sub:'{الفترة} ({تاريخ_الفترة}) مقارنةً بـ {الفترة_السابقة}',tag:'إجمالي البلاغات · رضا المستفيد · مستوى الخدمة',by:'عبدالعزيز الوذيناني',sup:'منيرة المزيني',date:'',logo:'',cTotal:'#1E88C8',cSat:'#7CB342',cSl:'#1B3A5C',navy:'#1B3A5C',cFoot:'#5378C0',t1:80,t2:90,prevBar:true,prevVal:true,chg:true,rank:true,strip:true,secSub:true,grpHead:true,satParts:true,q:3,font:'plex',fsize:100,kpis:[['total',true],['sat',true],['sl',true]],secs:{},order:[]};
 const RF_DEF={limit:0,hideGroups:[],cmp:'one'};
 function fixState(s){
   if(s.info && s.info.v===3){ s.info.v=4; s.info.grpHead=true; Object.values(s.info.secs||{}).forEach(x=>{ delete x.top; }); }
@@ -1653,6 +1659,44 @@ const IG_ICO={
 const igIco=s=>s.metric==='count'?IG_ICO[s.entity]:IG_ICO[s.metric];
 const igCol=s=>{ const c=state.info; return s.metric==='count'?c.cTotal:s.metric==='sat'?c.cSat:c.cSl; };
 const igLogo=(h=64)=>state.info.logo?`<img src="${state.info.logo}" alt="" style="height:${h}px;width:auto;display:block">`:'';
+/* v24: ترويسة وذيل الإنفوجرافيك الأسبوعي بإعدادات الربعي: أحجام وألوان وإظهار، مكان الشعار وحجمه، شعار ثانٍ، ذيل بثلاثة نصوص ووسوم، تنويهات، علامة مائية */
+function igHfKit(c,D,o={}){
+  const HF=qHF(c), LH=+c.logoSize||64, pos=c.logoPos||'left', P=D.P||[];
+  const ctx={'الجهة':c.org1||'','العنوان':D.title||'','المعد':c.by||'','المشرف':c.sup||'','الفترة':P[1]?P[1].label:'','التاريخ':D.date||'','الصفحة':'','المستشفى':''};
+  const tx=(x,base,def)=>`font-size:${(base*(+x.sz||100)/100).toFixed(1)}px;color:${x.c||def};font-weight:${x.b?700:400};`;
+  const L1=igLogo(LH), L2=c.logo2?`<img src="${c.logo2}" alt="" style="height:${LH}px;width:auto;display:block">`:'';
+  const org=HF.org.on&&(c.org1||c.org2||c.org3)?`<div class="org" style="${tx(HF.org,14,o.orgC||c.navy)};line-height:1.55">${c.org1?`<b style="display:block;font-size:1.13em">${esc(c.org1)}</b>`:''}${c.org2?`<span style="display:block">${esc(c.org2)}</span>`:''}${c.org3?`<span style="display:block">${esc(c.org3)}</span>`:''}</div>`:'';
+  const cell=(a,b,end)=>`<div class="lg" style="display:flex;align-items:center;gap:14px;justify-content:${end?'flex-end':'flex-start'}">${a}${b}</div>`;
+  const R = pos==='right' ? cell(L1,'',false) : cell(pos==='left'?L2:'',org,false);
+  const Lf = pos==='right' ? cell(org,L2,true) : cell('',pos==='left'?L1:L2,true);
+  const T=`<div class="ttl" style="flex:1;text-align:center">${pos==='center'&&L1?`<div style="display:flex;justify-content:center;margin-bottom:8px">${L1}</div>`:''}${HF.title.on&&D.title?`<h1 style="margin:0;${tx(HF.title,o.h1||30,o.titleC||c.navy)}">${esc(D.title)}</h1>`:''}${HF.sub.on&&D.sub?`<h2 style="margin:3px 0 0;${tx(HF.sub,o.h2||20,o.subC||c.cTotal)}">${esc(D.sub)}</h2>`:''}${D.tag?`<small style="display:block;margin-top:4px;font-size:13px;opacity:.8">${esc(D.tag)}</small>`:''}</div>`;
+  const F=HF.ftr, band=F.st!=='line';
+  const ftR=F.r?esc(qFill(F.r,ctx)):`${c.by?`<small>إعداد</small>${esc(c.by)}`:''}${c.by&&c.sup?' &nbsp;·&nbsp; ':''}${c.sup?`<small>إشراف</small>${esc(c.sup)}`:''}`;
+  const ftM=F.m?esc(qFill(F.m,ctx)):'';
+  const ftL=F.l?esc(qFill(F.l,ctx)):`<small>تاريخ الإعداد</small>${esc(ctx['التاريخ'])}`;
+  const ft=F.on?`<div class="hfk-ft" style="${o.ftM||''}"><span>${ftR}</span><span>${ftM}</span><span>${ftL}</span>${c.ftLogo&&c.logo?`<span style="flex:none">${igLogo(44)}</span>`:''}</div>`:'';
+  const notes=(c.notes||[]).filter(x=>x&&x.on!==0&&String(x.t||'').trim());
+  const notesHtml=notes.length?`<div class="hfk-notes" style="${o.notesM||''}">${notes.map(x=>`<div class="hfk-note"><b>تنويه:</b> ${esc(x.t)}</div>`).join('')}</div>`:'';
+  const css=`
+  .hfk-ft{display:flex;justify-content:space-between;align-items:center;gap:16px;${band?`background:${c.cFoot||c.navy};color:${F.c||'#fff'};padding:16px 34px;`:`background:transparent;color:${F.c||'#5E6E6B'};${F.line?`border-top:2px solid ${c.navy};`:''}padding:12px 6px;`}font-size:${(15*(+F.sz||100)/100).toFixed(1)}px}
+  .hfk-ft>span{flex:1;white-space:nowrap} .hfk-ft>span:nth-child(2){text-align:center} .hfk-ft>span:nth-child(3){text-align:left}
+  .hfk-ft small{opacity:.75;margin-inline-end:6px;font-size:.85em}
+  .igB .foot small{opacity:.75;margin-inline-end:6px;font-size:.85em}
+  .hfk-notes{display:grid;gap:8px}
+  .hfk-note{border:1.5px solid #E39B2D;background:#FFF8EC;border-radius:10px;padding:9px 14px;font-size:14px;color:#7A4B00;line-height:1.6} .hfk-note b{color:#B06D06}
+  ${c.wm&&c.wm.on&&c.wmData?`.igA,.igB,.igC,.igD{background-image:url(${c.wmData});background-repeat:repeat-y;background-position:center 320px;background-size:44% auto}`:''}`;
+  return {cells:R+T+Lf, ft, notes:notesHtml, css, org, L1, L2, ftR, ftL, ftM, T};
+}
+function igWmRefresh(){ const Z=state.info, W=Z.wm||{}; const src=W.on?(W.src==='image'?W.image:Z.logo):'';
+  if(!src){ Z.wmData=''; save(); refreshInfo(); return; }
+  const img=new Image(); img.onload=()=>{ const max=700, k=Math.min(1,max/Math.max(img.naturalWidth||max,img.naturalHeight||max)); const cv=document.createElement('canvas'); cv.width=Math.round((img.naturalWidth||max)*k); cv.height=Math.round((img.naturalHeight||max)*k);
+    const g=cv.getContext('2d'); g.globalAlpha=+W.op||0.07; g.drawImage(img,0,0,cv.width,cv.height); Z.wmData=cv.toDataURL('image/png'); save(); refreshInfo(); };
+  img.onerror=()=>{ Z.wmData=''; refreshInfo(); }; img.src=src; }
+function igImgPick(e,key){ const f=e.target.files[0]; e.target.value=''; if(!f) return; const img=new Image(), url=URL.createObjectURL(f);
+  img.onload=()=>{ const max=key==='wm'?700:240; const k=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight)); const cv=document.createElement('canvas'); cv.width=Math.round(img.naturalWidth*k); cv.height=Math.round(img.naturalHeight*k); cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+    const d=cv.toDataURL('image/png'); URL.revokeObjectURL(url); const c=state.info; if(key==='wm'){ c.wm.image=d; c.wm.src='image'; } else c[key]=d; save(); igRedrawPanel(); if(key==='wm') igWmRefresh(); else refreshInfo(); toast('أُضيفت الصورة'); };
+  img.onerror=()=>{ URL.revokeObjectURL(url); toast('تعذرت قراءة الصورة'); }; img.src=url; }
+
 
 const IG_PILLCSS=t=>`${t} .pl{display:inline-block;border-radius:7px;padding:2px 9px;font-size:12px;font-weight:700;direction:ltr;white-space:nowrap;text-align:center}${t} .pg{background:#E3F4E5;color:#2E7D32}${t} .pb{background:#FCE4E4;color:#C62828}${t} .pz{background:#EEF1F4;color:#9AA6B2}`;
 const igPrevLbl=P=>'السابق';
@@ -1665,7 +1709,7 @@ function igGroupHeads(D, wrap){
 
 /* ===== A: like the attached file ===== */
 function igA(rep){
-  const D=igData(rep), P=D.P, c=D.c, el=document.createElement('div'), NAVY=c.navy;
+  const D=igData(rep), P=D.P, c=D.c, el=document.createElement('div'), NAVY=c.navy; const HK=igHfKit(c,D,{ftM:'margin:24px -30px 0',notesM:'margin:16px 0 0',h1:30,h2:21});
   const sub=(lbl,v,p)=>`<div class="sb"><div class="sbh"><span>${lbl}</span><b>${igF1(v)}</b>${igPill(igChg(p,v,true))}</div><div class="tr"><i style="width:${(v||0)*100}%;background:${satBar(v)}"></i></div>${c.prevBar?`<div class="tr th"><i style="width:${(p||0)*100}%"></i></div>`:''}</div>`;
   const K={
     total:()=>`<div class="kc" style="--t:${c.cTotal}"><span class="tag">إجمالي البلاغات</span><div class="big">${igFi(D.k.total[1])}</div>${c.chg?igPill(igChg(D.k.total[0],D.k.total[1],false)):''}<div class="note">${esc(P[0].label)}: ${igFi(D.k.total[0])} بلاغ</div></div>`,
@@ -1677,7 +1721,7 @@ function igA(rep){
   const sec=s=>{ const mx=s.isRate?1:Math.max(1,...s.rows.map(x=>Math.max(x.v||0,c.prevBar?(x.p||0):0)));
     return `<div class="sc" style="--c:${igCol(s)}"><div class="sh"><div class="ib">${igIco(s)}</div><div style="flex:1;min-width:0"><h3>${esc(s.title)}</h3>${c.secSub?`<small>${s.sub}</small>`:''}</div>${s.tot!=null?`<span class="tt2">${s.isRate?igF1(s.tot):igFi(s.tot)}</span>`:''}</div>
      ${s.rows.length?s.rows.map((r,i)=>`<div class="row" style="grid-template-columns:${grid}${c.chg?' 62px':''}">${c.rank?`<span class="rk">${i+1}</span>`:''}<span class="nm${s.entity==='category'?' full':''}">${esc(r.name)}${s.metric==='sat'&&r.n!=null?`<small>${igFi(r.n)} بلاغ</small>`:''}</span><div><div class="tr"><i style="width:${Math.min(100,(r.v||0)/mx*100)}%;background:${s.isRate?igSc(s,r.v):c.cTotal}"></i></div>${c.prevBar?`<div class="tr th"><i style="width:${Math.min(100,(r.p||0)/mx*100)}%"></i></div>`:''}</div><span class="vv">${s.isRate?igF1(r.v):igFi(r.v)}${c.prevVal?`<small>${igPrevLbl(P)}: ${s.isRate?igF1(r.p):igFi(r.p)}</small>`:''}</span>${c.chg?igPill(igChg(r.p,r.v,s.isRate)):''}</div>`).join(''):`<div class="none">لا توجد بيانات</div>`}</div>`; };
-  el.innerHTML=`<style>
+  el.innerHTML=`<style>${HK.css}
   .igA{width:1520px;background:#F6F9FC;font-family:${igFontStack()};direction:rtl;color:#1C2B39;padding:26px 30px 0;line-height:1.45}
   .igA .hd{display:grid;grid-template-columns:1fr 2fr 1fr;align-items:center;margin-bottom:22px}
   .igA .org{font-size:14px;line-height:1.55;color:${NAVY}} .igA .org b{display:block;font-size:16px} .igA .org span{display:block;color:${c.cTotal}}
@@ -1714,18 +1758,17 @@ function igA(rep){
   .igA .ft .mid{display:flex;gap:40px;text-align:center} .igA .ft .mid div+div{border-inline-start:1px solid rgba(255,255,255,.4);padding-inline-start:40px}
   </style>
   <div class="igA">
-   <div class="hd"><div class="org">${c.org1?`<b>${esc(c.org1)}</b>`:''}${c.org2?`<span>${esc(c.org2)}</span>`:''}${esc(c.org3||'')}</div>
-     <div class="ttl"><h1>${esc(D.title)}</h1>${D.sub?`<h2>${esc(D.sub)}</h2>`:''}${D.tag?`<small>${esc(D.tag)}</small>`:''}</div><div class="lg">${igLogo(72)}</div></div>
-   ${D.kpis.length?`<div class="kr">${D.kpis.map(x=>K[x]()).join('')}</div>`:''}
+   <div class="hd">${HK.cells}</div>
+   ${D.kpis.length?`<div class="kr">${D.kpis.map(x=>K[x]()).join('')}</div>`:''}${HK.notes}
    <div class="sg">${igGroupHeads(D,sec)}</div>
-   <div class="ft"><div><small>تاريخ إعداد التقرير</small><b>${esc(D.date)}</b></div><div class="mid">${c.by?`<div><small>إعداد</small><b>${esc(c.by)}</b></div>`:''}${c.sup?`<div><small>إشراف</small><b>${esc(c.sup)}</b></div>`:''}</div><div>${igLogo(52)}</div></div>
+   ${HK.ft}
   </div>`;
   return el;
 }
 
 /* ===== B: side panel ===== */
 function igB(rep){
-  const D=igData(rep), P=D.P, c=D.c, el=document.createElement('div'), NAVY=c.navy;
+  const D=igData(rep), P=D.P, c=D.c, el=document.createElement('div'), NAVY=c.navy; const HK=igHfKit(c,D,{orgC:'rgba(255,255,255,.85)',titleC:'#fff',subC:'#8EC9F0',h1:28,h2:17,notesM:'margin:0 0 16px'});
   const ring=(v,col)=>{ const r=54, C=2*Math.PI*r; return `<svg viewBox="0 0 130 130" width="130" height="130"><circle cx="65" cy="65" r="${r}" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="12"/><circle cx="65" cy="65" r="${r}" fill="none" stroke="${col}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${C*(v||0)} ${C}" transform="rotate(-90 65 65)"/><text x="65" y="72" text-anchor="middle" font-size="22" font-weight="700" fill="#fff">${v==null?'—':(v*100).toFixed(1)+'%'}</text></svg>`; };
   const K={
     total:()=>`<div class="kb"><span class="l">إجمالي البلاغات</span><span class="v">${igFi(D.k.total[1])}</span><span class="s">${c.chg?igPill(igChg(D.k.total[0],D.k.total[1],false)):''} ${esc(P[0].label)}: ${igFi(D.k.total[0])}</span></div>`,
@@ -1735,7 +1778,7 @@ function igB(rep){
     return `<div class="sc"><div class="sh">${igIco(s)}<h3>${esc(s.title)}</h3>${c.secSub?`<small>${s.sub}</small>`:''}</div>
      ${c.prevBar?`<div class="lgd"><span><i style="background:${c.cTotal}"></i>${esc(P[1].label)}</span><span><i style="background:${NAVY};width:2px"></i>${esc(P[0].label)}</span></div>`:''}
      ${s.rows.map((r,i)=>`<div class="row${s.entity==='category'?' full':''}">${c.rank?`<span class="rk">${i+1}</span>`:''}<span>${esc(r.name)}</span><div class="bar"><i style="width:${(r.v||0)/mx*100}%;background:${s.isRate?igSc(s,r.v):c.cTotal}"></i>${c.prevBar&&r.p!=null?`<u style="right:${Math.min(99.5,r.p/mx*100)}%"></u>`:''}</div><span class="v" style="color:${s.isRate?igSc(s,r.v):NAVY}">${s.isRate?igF1(r.v):igFi(r.v)}</span>${c.chg?igPill(igChg(r.p,r.v,s.isRate)):''}</div>`).join('')||'<div class="none">لا توجد بيانات</div>'}</div>`; };
-  el.innerHTML=`<style>
+  el.innerHTML=`<style>${HK.css}
   .igB{width:1520px;display:grid;grid-template-columns:380px 1fr;font-family:${igFontStack()};direction:rtl;color:#1C2B39;background:#F3F6FA;line-height:1.45}
   .igB .sd{background:linear-gradient(180deg,${NAVY},#12283F);color:#fff;padding:34px 30px;display:flex;flex-direction:column;gap:22px}
   .igB .sd .org{font-size:13px;opacity:.85;line-height:1.6}
@@ -1760,22 +1803,22 @@ function igB(rep){
   .igB .v{font-weight:700;text-align:center} .igB .none{color:#9AA6B2;font-size:13px}
   .igB .lgd{font-size:11px;color:#8A97A4;display:flex;gap:12px;margin-bottom:4px} .igB .lgd i{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:middle;margin-inline-end:4px}
   </style>
-  <div class="igB"><aside class="sd"><div class="org">${[c.org1,c.org2,c.org3].filter(Boolean).map(esc).join(' · ')}</div><div><h1>${esc(D.title)}</h1>${D.sub?`<h2>${esc(D.sub)}</h2>`:''}</div>
+  <div class="igB"><aside class="sd">${HK.L1||HK.L2?`<div style="display:flex;gap:12px;align-items:center">${HK.L1}${HK.L2}</div>`:''}${HK.org}${HK.T.replace('text-align:center','text-align:start')}
     ${D.kpis.map(x=>K[x]()).join('')}
-    <div class="foot"><div>${c.by?`إعداد: ${esc(c.by)}<br>`:''}${c.sup?`إشراف: ${esc(c.sup)}<br>`:''}${esc(D.date)}</div>${igLogo(52)}</div></aside>
-   <main class="mn">${igGroupHeads(D,sec)}</main></div>`;
+    <div class="foot" style="display:grid;gap:4px">${qHF(c).ftr.on?[HK.ftR,HK.ftM,HK.ftL].filter(Boolean).map(x=>`<div>${x}</div>`).join(''):''}</div></aside>
+   <main class="mn">${HK.notes}${igGroupHeads(D,sec)}</main></div>`;
   return el;
 }
 
 /* ===== C: dumbbell ===== */
 function igC(rep){
-  const D=igData(rep), P=D.P, c=D.c, el=document.createElement('div'), NAVY=c.navy;
+  const D=igData(rep), P=D.P, c=D.c, el=document.createElement('div'), NAVY=c.navy; const HK=igHfKit(c,D,{orgC:'rgba(255,255,255,.85)',titleC:'#fff',subC:'rgba(255,255,255,.9)',ftM:'margin:24px 0 0',notesM:'margin:16px 40px 0',h1:30,h2:18});
   const K={total:['إجمالي البلاغات',D.k.total,false],sat:['متوسط رضا المستفيد',D.k.sat,true],sl:['مستوى الخدمة',D.k.sl,true]};
   const kp=x=>{ const [l,v,isR]=K[x]; return `<div class="kp"><div class="l">${l}</div><div class="v">${isR?igF1(v[1]):igFi(v[1])}</div><div class="s">${c.chg?igPill(igChg(v[0],v[1],isR)):''}<span>${esc(P[0].label)}: ${isR?igF1(v[0]):igFi(v[0])}</span></div></div>`; };
   const sec=s=>{ const vals=s.rows.flatMap(r=>[r.v,r.p]).filter(x=>x!=null); const lo=s.isRate&&vals.length?Math.max(0,Math.floor((Math.min(...vals)-.05)*10)/10):0, hi=s.isRate?1:Math.max(1,...vals); const pos=v=>((v-lo)/((hi-lo)||1)*100);
     return `<div class="sc"><h3>${igIco(s)}${esc(s.title)}${c.secSub?`<small>${s.sub}</small>`:''}</h3>${s.rows.map((r,i)=>{ const a=r.p, b=r.v, good=s.isRate?(b>=(a??b)):(b<=(a??b)), col=good?'#2E7D32':'#C62828';
       return `<div class="row${s.entity==='category'?' full':''}">${c.rank?`<span class="rk">${i+1}</span>`:''}<span>${esc(r.name)}</span><div class="db">${a!=null&&b!=null?`<b style="right:${Math.min(pos(a),pos(b))}%;width:${Math.abs(pos(a)-pos(b))}%;background:${col}"></b>`:''}${a!=null?`<i style="right:${pos(a)}%;background:#AFC4D8"></i>`:''}${b!=null?`<i style="right:${pos(b)}%;background:${s.isRate?igSc(s,b):c.cTotal}"></i>`:''}</div><span class="v">${s.isRate?igF1(b):igFi(b)}</span></div>`; }).join('')||'<div class="none">لا توجد بيانات</div>'}</div>`; };
-  el.innerHTML=`<style>
+  el.innerHTML=`<style>${HK.css}
   .igC{width:1240px;background:#fff;font-family:${igFontStack()};direction:rtl;color:#1C2B39;line-height:1.45}
   .igC .hd{background:linear-gradient(120deg,${c.cTotal},${NAVY});color:#fff;padding:30px 40px 90px;display:flex;justify-content:space-between;align-items:flex-start;gap:20px}
   .igC .hd h1{margin:0;font-size:30px} .igC .hd h2{margin:4px 0 0;font-size:18px;font-weight:500;opacity:.9} .igC .hd .org{font-size:13px;opacity:.85;margin-bottom:8px}
@@ -1797,21 +1840,21 @@ function igC(rep){
   .igC .v{font-weight:700;text-align:center} .igC .none{color:#9AA6B2;font-size:13px}
   .igC .ft{background:#F3F6FA;display:flex;justify-content:space-between;align-items:center;padding:14px 40px;font-size:13px;color:#4A5B6B}
   </style>
-  <div class="igC"><div class="hd"><div><div class="org">${[c.org1,c.org2,c.org3].filter(Boolean).map(esc).join(' · ')}</div><h1>${esc(D.title)}</h1>${D.sub?`<h2>${esc(D.sub)}</h2>`:''}</div>${igLogo(64)}</div>
-   ${D.kpis.length?`<div class="kr">${D.kpis.map(kp).join('')}</div>`:''}
+  <div class="igC"><div class="hd">${HK.cells}</div>
+   ${D.kpis.length?`<div class="kr">${D.kpis.map(kp).join('')}</div>`:''}${HK.notes}
    <div class="lgd"><span><i style="background:#AFC4D8"></i>${esc(P[0].label)}</span><span><i style="background:${c.cTotal}"></i>${esc(P[1].label)}</span><span>الخط بين النقطتين: أخضر للتحسن وأحمر للتراجع</span></div>
    <div class="g">${igGroupHeads(D,sec)}</div>
-   <div class="ft"><span>${[c.by&&'إعداد: '+esc(c.by),c.sup&&'إشراف: '+esc(c.sup)].filter(Boolean).join(' · ')}</span><span>${esc(D.date)}</span></div></div>`;
+   ${HK.ft}</div>`;
   return el;
 }
 
 /* ===== D: print table ===== */
 function igD(rep){
-  const D=igData(rep), P=D.P, c=D.c, el=document.createElement('div'), NAVY=c.navy;
+  const D=igData(rep), P=D.P, c=D.c, el=document.createElement('div'), NAVY=c.navy; const HK=igHfKit(c,D,{ftM:'margin:24px -36px -30px',notesM:'margin:0 0 14px',orgC:'#6B7B8A',h1:28,h2:17});
   const heat=v=>v==null?'#F3F5F7':v*100<c.t1-10?'#F8C9C9':v*100<c.t1?'#FCE3E3':v*100<c.t2?'#DCEEFB':'#DDF0D2';
   const K={total:['إجمالي البلاغات',D.k.total,false],sat:['متوسط رضا المستفيد',D.k.sat,true],sl:['مستوى الخدمة',D.k.sl,true]};
   const sec=s=>`<table><caption>${esc(s.title)}</caption><thead><tr>${c.rank?'<th>#</th>':''}<th>${s.entity==='category'?'التصنيف':s.entity==='hospital'?'القطاع':'المركز'}</th><th>${esc(P[1].label)}</th><th>${esc(P[0].label)}</th>${c.chg?'<th>التغيّر</th>':''}</tr></thead><tbody>${s.rows.map((r,i)=>`<tr>${c.rank?`<td class="rk">${i+1}</td>`:''}<td>${esc(r.name)}</td><td class="h" style="background:${s.isRate?(s.metric==='sat'?satBg(r.v):heat(r.v)):'transparent'}">${s.isRate?igF1(r.v):igFi(r.v)}</td><td style="color:#8A97A4">${s.isRate?igF1(r.p):igFi(r.p)}</td>${c.chg?`<td>${igPill(igChg(r.p,r.v,s.isRate))}</td>`:''}</tr>`).join('')||`<tr><td colspan="5" style="color:#9AA6B2">لا توجد بيانات</td></tr>`}</tbody></table>`;
-  el.innerHTML=`<style>
+  el.innerHTML=`<style>${HK.css}
   .igD{width:1240px;background:#fff;font-family:${igFontStack()};direction:rtl;color:#1C2B39;padding:30px 36px;line-height:1.45}
   .igD .hd{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid ${NAVY};padding-bottom:14px;gap:20px}
   .igD h1{margin:0;font-size:28px;color:${NAVY}} .igD h2{margin:2px 0 0;font-size:17px;color:${c.cTotal};font-weight:500} .igD .org{font-size:12.5px;color:#6B7B8A}
@@ -1830,12 +1873,12 @@ function igD(rep){
   .igD .ft{display:flex;justify-content:space-between;font-size:12px;color:#6B7B8A;margin-top:16px;border-top:1px solid #E1E7ED;padding-top:10px}
   .igD .key{display:flex;gap:10px;font-size:11.5px;color:#6B7B8A;margin-bottom:10px;align-items:center} .igD .key i{display:inline-block;width:14px;height:10px;border-radius:2px;vertical-align:middle;margin-inline-end:4px}
   </style>
-  <div class="igD"><div class="hd"><div><div class="org">${[c.org1,c.org2,c.org3].filter(Boolean).map(esc).join(' · ')}</div><h1>${esc(D.title)}</h1>${D.sub?`<h2>${esc(D.sub)}</h2>`:''}</div>${igLogo(64)}</div>
+  <div class="igD"><div class="hd">${HK.cells}</div>
    ${D.kpis.length?`<div class="kr">${D.kpis.map(x=>{ const [l,v,isR]=K[x]; return `<div><div><div class="l">${l}</div><div class="v">${isR?igF1(v[1]):igFi(v[1])}</div></div><div>${c.chg?igPill(igChg(v[0],v[1],isR)):''}<div class="p">${esc(P[0].label)}: ${isR?igF1(v[0]):igFi(v[0])}</div></div></div>`; }).join('')}</div>`:''}
-   <div class="key">ألوان الرضا: <span><i style="background:#DDF0D2"></i>${satT()[1]}% فأعلى</span><span><i style="background:#FFE8C7"></i>${satT()[0]}% إلى أقل من ${satT()[1]}%</span><span><i style="background:#F8C9C9"></i>أقل من ${satT()[0]}%</span></div>
+   ${HK.notes}<div class="key">ألوان الرضا: <span><i style="background:#DDF0D2"></i>${satT()[1]}% فأعلى</span><span><i style="background:#FFE8C7"></i>${satT()[0]}% إلى أقل من ${satT()[1]}%</span><span><i style="background:#F8C9C9"></i>أقل من ${satT()[0]}%</span></div>
    <div class="key">ألوان النسب الأخرى: <span><i style="background:#F8C9C9"></i>أقل من ${c.t1-10}%</span><span><i style="background:#FCE3E3"></i>${c.t1-10}–${c.t1}%</span><span><i style="background:#DCEEFB"></i>${c.t1}–${c.t2}%</span><span><i style="background:#DDF0D2"></i>${c.t2}% فأعلى</span></div>
    <div class="g">${igGroupHeads(D,sec)}</div>
-   <div class="ft"><span>${[c.by&&'إعداد: '+esc(c.by),c.sup&&'إشراف: '+esc(c.sup)].filter(Boolean).join(' · ')}</span><span>تاريخ الإعداد: ${esc(D.date)}</span></div></div>`;
+   ${HK.ft}</div>`;
   return el;
 }
 const infoW=rep=> rep&&rep.type==='quarterly' ? qiWidth(qShownN(rep),qCfg().layout) : (IG_W[state.info.tpl]||1520);
@@ -1848,7 +1891,7 @@ function refreshInfo(){ clearTimeout(infoT); infoT=setTimeout(()=>{ if(cur().typ
 
 /* ---------- integrated panel ---------- */
 let igTab='tpl', igSnap=null;
-const IG_TABS=[['tpl','القالب'],['head','الترويسة والتذييل'],['kpi','المؤشرات'],['secs','الأقسام'],['look','الألوان والعرض'],['exp','التصدير']];
+const IG_TABS=[['tpl','القالب'],['head','الترويسة والتذييل'],['logo','الشعار والخلفية'],['notes','التنويهات'],['kpi','المؤشرات'],['secs','الأقسام'],['look','الألوان والعرض'],['exp','التصدير']];
 function igDirty(){ return igSnap!=null && JSON.stringify(state.info)!==igSnap; }
 function igDirtyHint(){ const h=document.getElementById('igHint'); if(h) h.textContent = igDirty()?'تغييرات لم تُعتمد بعد':'لا تغييرات جديدة'; const b=document.querySelector('[data-igact="save"]'); if(b) b.classList.toggle('dirty',igDirty()); }
 function igPanelBody(rep){
@@ -1860,13 +1903,43 @@ function igPanelBody(rep){
     <div class="two"><div><label class="fld-lbl" for="ig_cols">أعمدة الأقسام</label><select class="inp" id="ig_cols" data-ig="cols">${opt([[1,'عمود واحد'],[2,'عمودان'],[3,'ثلاثة أعمدة']],c.cols)}</select></div><div></div></div>
     <p class="hint" style="margin:0">الأعمدة الثلاثة للقالب الأول فقط، وبقية القوالب عمودان كحد أقصى.</p>
     <div class="togs">${tog('grpHead','عنوان لكل مجموعة (القطاعات · المراكز · التصانيف)')}</div>`;
-  if(igTab==='head') return `${fld('org1','سطر الجهة 1')}${fld('org2','سطر الجهة 2')}${fld('org3','سطر الجهة 3')}
-    ${fld('title','العنوان الرئيسي')}${fld('sub','العنوان الفرعي')}
-    <p class="hint" style="margin:0">رموز تُستبدل تلقائياً: {اسم_التقرير} {الفترة} {تاريخ_الفترة} {الفترة_السابقة}</p>
-    ${fld('tag','سطر الوصف تحت العنوان')}
-    <div class="two">${fld('by','إعداد')}${fld('sup','إشراف')}</div>
-    ${fld('date','تاريخ الإعداد','فارغ = تاريخ اليوم: '+igToday())}
-    <div><span class="fld-lbl">الشعار</span><div class="logo-row">${c.logo?`<img src="${c.logo}" alt="الشعار">`:'<span class="mut" style="font-size:12.5px">لا يوجد شعار</span>'}<label class="btn sm">${c.logo?'تغيير':'رفع صورة'}<input type="file" id="igLogo" accept="image/*" hidden></label>${c.logo?'<button type="button" class="btn sm ghost danger" data-igact="logo-rm">إزالة</button>':''}</div></div>`;
+  if(igTab==='head'){ const H=qHF(c);
+    const sz=k=>`<select class="inp" data-ighf="${k}.sz">${opt([[85,'صغير'],[100,'عادي'],[120,'كبير'],[145,'كبير جداً']],H[k].sz)}</select>`;
+    const clr=(k,def)=>`<input type="color" data-ighf="${k}.c" value="${esc(H[k].c||def)}" title="اللون"><button type="button" class="btn sm ghost" data-ighfc="${k}" title="اللون الافتراضي">↺</button>`;
+    const sty=(k,def,bold=true)=>`<div class="hfrow"><span class="mut">الحجم</span>${sz(k)}<span class="mut">اللون</span>${clr(k,def)}${bold?`<label><input type="checkbox" data-ighf="${k}.b" ${H[k].b?'checked':''}> عريض</label>`:''}</div>`;
+    const on=(k,l)=>`<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-ighf="${k}.on" ${H[k].on?'checked':''}><b>${l}</b></label>`;
+    return `<div class="hfbox">${on('title','العنوان')}${fld('title','نص العنوان')}${sty('title',c.navy||'#1B3A5C')}</div>
+     <div class="hfbox">${on('sub','العنوان الفرعي')}${fld('sub','نص العنوان الفرعي')}${sty('sub',c.cTotal||'#1E88C8')}${fld('tag','سطر الوصف تحت العنوان')}</div>
+     <p class="hint" style="margin:0">رموز تُستبدل تلقائياً في العنوان: {اسم_التقرير} {الفترة} {تاريخ_الفترة} {الفترة_السابقة}</p>
+     <div class="hfbox">${on('org','أسطر الجهة')}${fld('org1','السطر 1')}${fld('org2','السطر 2')}${fld('org3','السطر 3')}${sty('org',c.navy||'#1B3A5C')}</div>
+     <div class="two">${fld('by','إعداد')}${fld('sup','إشراف')}</div>
+     ${fld('date','تاريخ الإعداد','فارغ = تاريخ اليوم: '+igToday())}
+     <div class="hfbox">${on('ftr','ذيل الصفحة')}
+       ${H.ftr.on?`<input class="inp" data-ighf="ftr.r" value="${esc(H.ftr.r)}" placeholder="النص الأيمن · الافتراضي: إعداد · إشراف">
+       <input class="inp" data-ighf="ftr.m" value="${esc(H.ftr.m)}" placeholder="النص الأوسط · الافتراضي: فارغ">
+       <input class="inp" data-ighf="ftr.l" value="${esc(H.ftr.l)}" placeholder="النص الأيسر · الافتراضي: تاريخ الإعداد">
+       <div class="hfrow"><span class="mut">الشكل</span><select class="inp" data-ighf="ftr.st">${opt([['band','شريط ملوّن'],['line','نص على خلفية الصفحة']],H.ftr.st)}</select>
+         ${H.ftr.st==='line'?`<label><input type="checkbox" data-ighf="ftr.line" ${H.ftr.line?'checked':''}> خط فاصل فوق الذيل</label>`:''}</div>
+       ${sty('ftr',H.ftr.st==='line'?'#5E6E6B':'#FFFFFF',false)}
+       <div class="togs">${tog('ftLogo','إظهار الشعار في الذيل أيضاً')}</div>`:''}</div>
+     <p class="hint" style="margin:0">اترك نص الذيل فارغاً ليبقى الافتراضي. الوسوم: ${['الجهة','العنوان','المعد','المشرف','الفترة','التاريخ'].map(t=>`<code>{${t}}</code>`).join(' ')}. القالب الجانبي يعرض الذيل في أسفل العمود الجانبي.</p>
+     <div><button type="button" class="btn sm ghost" data-igact="hf-reset">إرجاع الترويسة والذيل للافتراضي</button></div>`; }
+  if(igTab==='logo'){ const W=c.wm||{};
+    const seg=(k,arr)=>`<div class="chips">${arr.map(([v,l])=>`<button type="button" class="chip" data-igstr="${k}:${v}" aria-pressed="${String(c[k]??'')===String(v)}">${l}</button>`).join('')}</div>`;
+    return `<div><span class="fld-lbl">الشعار</span><div class="logo-row">${c.logo?`<img src="${c.logo}" alt="الشعار">`:'<span class="mut" style="font-size:12.5px">لا يوجد شعار</span>'}<label class="btn sm">${c.logo?'تغيير':'رفع صورة'}<input type="file" id="igLogo" accept="image/*" hidden></label>${c.logo?'<button type="button" class="btn sm ghost danger" data-igact="logo-rm">إزالة</button>':''}</div></div>
+     <div><span class="fld-lbl">حجم الشعار</span>${seg('logoSize',[[48,'صغير'],[64,'متوسط'],[88,'كبير'],[116,'كبير جداً']])}</div>
+     <div><span class="fld-lbl">مكان الشعار</span>${seg('logoPos',[['right','يمين'],['center','وسط فوق العنوان'],['left','يسار']])}</div>
+     <div><span class="fld-lbl">شعار ثانٍ</span><div class="logo-row">${c.logo2?`<img src="${c.logo2}" alt="الشعار الثاني">`:'<span class="mut" style="font-size:12.5px">بدون</span>'}<label class="btn sm">${c.logo2?'تغيير':'اختيار صورة'}<input type="file" id="igLogo2" accept="image/*" hidden></label>${c.logo2?'<button type="button" class="btn sm ghost danger" data-igact="logo2-rm">حذف</button>':''}</div>
+       <span class="hint" style="margin:0">يظهر في الجهة المقابلة للشعار.</span></div>
+     <hr style="border:0;border-top:1px solid var(--line,#E3E9EF);margin:2px 0">
+     <div class="togs"><label><input type="checkbox" class="sw" data-igwm="on" ${W.on?'checked':''}>العلامة المائية: صورة باهتة في خلفية الإنفوجرافيك</label></div>
+     ${W.on?`<div><span class="fld-lbl">الصورة</span><div class="chips"><button type="button" class="chip" data-igwmset="src:logo" aria-pressed="${W.src!=='image'}">الشعار</button><button type="button" class="chip" data-igwmset="src:image" aria-pressed="${W.src==='image'}">صورة أخرى</button></div>
+       ${W.src==='image'?`<div class="logo-row" style="margin-top:6px">${W.image?`<img src="${W.image}" alt="">`:''}<label class="btn sm">${W.image?'تغيير':'اختيار صورة'}<input type="file" id="igWmImg" accept="image/*" hidden></label></div>`:(c.logo?'':'<span class="hint" style="margin:0">ارفع الشعار أولاً.</span>')}</div>
+       <div><span class="fld-lbl">الوضوح</span><div class="chips">${[[0.05,'خفيفة'],[0.08,'متوسطة'],[0.13,'واضحة']].map(([v,l])=>`<button type="button" class="chip" data-igwmset="op:${v}" aria-pressed="${+W.op===v}">${l}</button>`).join('')}</div></div>`:''}`; }
+  if(igTab==='notes'){ const N=c.notes||[];
+    return `${N.map((x,i)=>`<div style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" data-ignton="${i}" ${x.on!==0?'checked':''} title="إظهار" style="margin-top:10px"><textarea class="inp" data-ignt="${i}" rows="2" style="flex:1" placeholder="نص التنويه">${esc(x.t||'')}</textarea><button type="button" class="btn sm ghost" data-ignotedel="${i}">حذف</button></div>`).join('')||'<p class="hint" style="margin:0">لا توجد تنويهات بعد.</p>'}
+     <div><button type="button" class="btn sm" data-igact="note-add">+ إضافة تنويه</button></div>
+     <p class="hint" style="margin:0">تظهر تحت بطاقات المؤشرات بإطار برتقالي يبدأ بكلمة «تنويه:». ألغِ علامة التنويه لإخفائه دون حذفه.</p>`; }
   if(igTab==='kpi') return `<p class="hint" style="margin:0">اختر البطاقات التي تظهر أعلى الإنفوجرافيك ورتّبها بالأسهم.</p>
     <div class="iglist">${c.kpis.map(([k,on],i)=>`<div class="igrow"><label><input type="checkbox" data-igk="${k}" ${on?'checked':''}>${KPI_NAMES[k]}</label><div class="mvb"><button type="button" class="rm" data-igkmv="${k}:-1" ${i===0?'disabled':''} aria-label="لأعلى">↑</button><button type="button" class="rm" data-igkmv="${k}:1" ${i===c.kpis.length-1?'disabled':''} aria-label="لأسفل">↓</button></div></div>`).join('')}</div>
     <div class="togs">${tog('satParts','إظهار الرضا عن التواصل والإجراء داخل بطاقة الرضا')}${tog('chg','إظهار نسبة التغيّر في البطاقات والأقسام')}</div>`;
@@ -1908,9 +1981,9 @@ function renderInfoPage(){
   </div>`;
   mountFit(buildInfo(rep),IG_W[state.info.tpl]||1520); igDirtyHint();
   if(state.info.font && state.info.font!=='plex') ensureFont(state.info.font).then(()=>{ if(view==='info') refreshInfo(); });
-  const lf=document.getElementById('igLogo'); if(lf) lf.addEventListener('change',igLogoPick);
+  const lf=document.getElementById('igLogo'); if(lf) lf.addEventListener('change',igLogoPick); const l2=document.getElementById('igLogo2'); if(l2) l2.addEventListener('change',e=>igImgPick(e,'logo2')); const wi=document.getElementById('igWmImg'); if(wi) wi.addEventListener('change',e=>igImgPick(e,'wm'));
 }
-function igRedrawPanel(){ if(cur()&&cur().type==='quarterly'){ renderBody(); return; } const p=document.getElementById('igBody'); if(p){ p.innerHTML=igPanelBody(cur()); const lf=document.getElementById('igLogo'); if(lf) lf.addEventListener('change',igLogoPick); } document.querySelectorAll('[data-igtab]').forEach(x=>x.setAttribute('aria-selected',x.dataset.igtab===igTab)); }
+function igRedrawPanel(){ if(cur()&&cur().type==='quarterly'){ renderBody(); return; } const p=document.getElementById('igBody'); if(p){ p.innerHTML=igPanelBody(cur()); const lf=document.getElementById('igLogo'); if(lf) lf.addEventListener('change',igLogoPick); const l2=document.getElementById('igLogo2'); if(l2) l2.addEventListener('change',e=>igImgPick(e,'logo2')); const wi=document.getElementById('igWmImg'); if(wi) wi.addEventListener('change',e=>igImgPick(e,'wm')); } document.querySelectorAll('[data-igtab]').forEach(x=>x.setAttribute('aria-selected',x.dataset.igtab===igTab)); }
 function igLogoPick(e){
   const f=e.target.files[0]; e.target.value=''; if(!f) return;
   const img=new Image(), url=URL.createObjectURL(f);
@@ -1922,6 +1995,10 @@ function igLogoPick(e){
 function igOrderKeys(rep){ return igDefs(rep).map(d=>d.key); }
 function igInput(t){
   const d=t.dataset, c=state.info;
+  if(d.ighf){ const [a,b]=d.ighf.split('.'), H=c.hf=qHF(c); let v=t.type==='checkbox'?(t.checked?1:0):t.value; if(b==='sz') v=+v; H[a][b]=v; save(); if(b==='on'||b==='st') igRedrawPanel(); refreshInfo(); igDirtyHint(); return true; }
+  if(d.ignt!=null){ const N=c.notes||(c.notes=[]); if(N[+d.ignt]) N[+d.ignt].t=t.value; save(); refreshInfo(); igDirtyHint(); return true; }
+  if(d.ignton!=null){ const N=c.notes||[]; if(N[+d.ignton]) N[+d.ignton].on=t.checked?1:0; save(); refreshInfo(); igDirtyHint(); return true; }
+  if(d.igwm){ c.wm=c.wm||{src:'logo',op:0.07}; c.wm[d.igwm]=t.checked?1:0; save(); igRedrawPanel(); igWmRefresh(); igDirtyHint(); return true; }
   if(d.ig!=null){ let v=t.type==='checkbox'?t.checked:t.value; if(['cols','t1','t2','s1','s2'].includes(d.ig)) v=+v; c[d.ig]=v; save();
     if(d.ig==='tpl'||d.ig==='t1'||d.ig==='t2'||d.ig==='s1'||d.ig==='s2') igRedrawPanel();
     if(d.ig==='q'){ c.q=+v; save(); return true; }
@@ -1935,6 +2012,13 @@ function igInput(t){
 }
 function igClick(b){
   const d=b.dataset, c=state.info;
+  if(d.igstr){ const [k,v]=d.igstr.split(':'); c[k]=/^\d+$/.test(v)?+v:v; save(); igRedrawPanel(); refreshInfo(); igDirtyHint(); return true; }
+  if(d.ighfc){ const H=c.hf=qHF(c); H[d.ighfc].c=''; save(); igRedrawPanel(); refreshInfo(); igDirtyHint(); return true; }
+  if(d.igwmset){ const [k,v]=d.igwmset.split(':'); c.wm=c.wm||{src:'logo',op:0.07}; c.wm[k]=k==='op'?+v:v; save(); igRedrawPanel(); igWmRefresh(); igDirtyHint(); return true; }
+  if(d.igact==='hf-reset'){ c.hf=JSON.parse(JSON.stringify(Q_HF_DEF)); save(); igRedrawPanel(); refreshInfo(); igDirtyHint(); return true; }
+  if(d.igact==='note-add'){ (c.notes||(c.notes=[])).push({t:'',on:1}); save(); igRedrawPanel(); setTimeout(()=>{ const L=document.querySelectorAll('[data-ignt]'); L[L.length-1]?.focus(); },30); igDirtyHint(); return true; }
+  if(d.ignotedel!=null){ c.notes.splice(+d.ignotedel,1); save(); igRedrawPanel(); refreshInfo(); igDirtyHint(); return true; }
+  if(d.igact==='logo2-rm'){ c.logo2=''; save(); igRedrawPanel(); refreshInfo(); igDirtyHint(); return true; }
   if(d.igtab){ igTab=d.igtab; igRedrawPanel(); return true; }
   if(d.igfs){ c.fsize=+d.igfs; save(); igRedrawPanel(); refreshInfo(); return true; }
   if(d.igmv){ const [k,dir]=d.igmv.split(':'); const L=igOrderKeys(cur()); const i=L.indexOf(k), j=i+(+dir); if(i<0||j<0||j>=L.length) return true; [L[i],L[j]]=[L[j],L[i]]; c.order=[...L,...(c.order||[]).filter(x=>!L.includes(x))]; save(); igRedrawPanel(); refreshInfo(); return true; }
@@ -2526,6 +2610,7 @@ function fixQinfo(s){
   s.qinfo={...QI_DEF,...s.qinfo}; if(!Array.isArray(s.qinfo.hosOff)) s.qinfo.hosOff=[];
   if(s.qinfo.sv!==1){ s.qinfo.sv=1; s.qinfo.t1=85; s.qinfo.t2=90; } // v23: ألوان الرضا الثلاثة
   if(s.info&&s.info.sv!==1){ s.info.sv=1; s.info.s1=85; s.info.s2=90; }
+  if(s.info){ s.info.hf=qHF(s.info); s.info.wm={on:0,src:'logo',image:'',op:0.07,...(s.info.wm||{})}; if(!Array.isArray(s.info.notes)) s.info.notes=[]; }
   s.qinfo.hf=qHF(s.qinfo); s.qinfo.wm={...QI_DEF.wm,...(s.qinfo.wm||{})}; if(!Array.isArray(s.qinfo.notes)) s.qinfo.notes=[];
   return s;
 }
