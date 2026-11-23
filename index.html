@@ -475,6 +475,8 @@ table.qt th:nth-child(n+3){min-width:96px}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>
           تصدير</button>
         <div class="menu" id="exportMenu" hidden>
+          <button type="button" data-exp="backup"><span>نسخة احتياطية كاملة</span><span>كل التقارير والإعدادات والشعارات</span></button>
+          <hr>
           <button type="button" data-exp="xlsx-all"><span>Excel</span><span>كل التقارير</span></button>
           <button type="button" data-exp="xlsx-one"><span>Excel</span><span>التقرير الحالي</span></button>
           <hr>
@@ -640,7 +642,7 @@ function load(){
   return seedState();
 }
 let saveTimer=null;
-const APP_VER='24';
+const APP_VER='25';
 const UI_KEY='rep937-ui-v1';
 const INFO_DEF={s1:85,s2:90,logoSize:64,logoPos:'left',logo2:'',ftLogo:false,notes:[],wmData:'',v:4,tpl:'A',cols:3,org1:'تجمع مكة المكرمة الصحي',org2:'الرعاية الصحية الأولية',org3:'تجربة المستفيد',title:'{اسم_التقرير}',sub:'{الفترة} ({تاريخ_الفترة}) مقارنةً بـ {الفترة_السابقة}',tag:'إجمالي البلاغات · رضا المستفيد · مستوى الخدمة',by:'عبدالعزيز الوذيناني',sup:'منيرة المزيني',date:'',logo:'',cTotal:'#1E88C8',cSat:'#7CB342',cSl:'#1B3A5C',navy:'#1B3A5C',cFoot:'#5378C0',t1:80,t2:90,prevBar:true,prevVal:true,chg:true,rank:true,strip:true,secSub:true,grpHead:true,satParts:true,q:3,font:'plex',fsize:100,kpis:[['total',true],['sat',true],['sl',true]],secs:{},order:[]};
 const RF_DEF={limit:0,hideGroups:[],cmp:'one'};
@@ -1109,6 +1111,7 @@ async function runExport(kind){
   const btn=document.getElementById('btnExport'); btn.disabled=true; const old=btn.innerHTML; btn.lastChild.textContent=' جارٍ التجهيز…';
   if(/png|pdf|pptx|slides/.test(kind)) toast('جارٍ رسم الصورة بجودة عالية…');
   try{
+    if(kind==='backup'){ await saveFile(`نسخة-احتياطية-تقرير-937-${stamp()}.json`, new Blob([JSON.stringify({kind:'r937-report-backup',v:1,made:new Date().toISOString(),app:APP_VER,n:state.reports.length,state})],{type:'application/json'})); toast('حُفظت النسخة الاحتياطية · استعدها على الجهاز الآخر من «استيراد»'); return; }
     if(kind==='xlsx-all') await saveFile(`تقارير-البلاغات-${stamp()}.xlsx`, await buildXlsx(state.reports));
     if(kind==='xlsx-one') await saveFile(`${safeName(cur().name)}-${stamp()}.xlsx`, await buildXlsx([cur()]));
     if(cur().type==='quarterly'){ kind=({'png-one':'qinfo-png','pdf-one':'qinfo-pdf','info-png':'qinfo-png','info-pdf':'qinfo-pdf','info-xlsx':'qinfo-xlsx'})[kind]||kind; }
@@ -1373,6 +1376,7 @@ async function importFile(file){
 async function importFromDb(file){
   let data;
   try{ data=JSON.parse(await file.text()); }catch(e){ toast('تعذرت قراءة الملف'); return; }
+  if(data && data.kind==='r937-report-backup' && data.state) return restoreBackup(data);
   if(data && data.kind==='r937-report-bridge' && data.report && data.report.type==='quarterly') return qImportBridge(data);
   if(!data || data.kind!=='r937-report-bridge' || !data.report || !TYPES[data.report.type]){
     dialog({title:'هذا ليس ملفاً من القاعدة', body:'افتح «قاعدة بلاغات المراكز 937» واختر من القائمة ⋮ «إرسال للتقرير»، ثم افتح الملف الناتج هنا.', actions:[{label:'حسناً',cls:'primary'}]}); return;
@@ -1402,6 +1406,15 @@ document.addEventListener('dragleave',()=>{ dragN=Math.max(0,dragN-1); if(!dragN
 document.addEventListener('dragover',e=>{ if([...(e.dataTransfer?.types||[])].includes('Files')) e.preventDefault(); });
 document.addEventListener('drop',e=>{ dragN=0; document.querySelector('.dropzone')?.remove(); const f=e.dataTransfer?.files?.[0]; if(f){ e.preventDefault(); importFile(f); } });
 
+/* v25: استعادة نسخة احتياطية كاملة (التقارير والإعدادات والشعارات) */
+function restoreBackup(data){
+  const d=new Date(data.made||Date.now()), when=`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  const R=(data.state.reports||[]);
+  dialog({title:'استعادة نسخة احتياطية كاملة', html:`<p style="margin-top:0">نسخة بتاريخ <b>${esc(when)}</b>${data.app?` من الإصدار ${esc(data.app)}`:''}، فيها <b>${R.length}</b> تقرير:</p>
+    <ul style="margin:0 0 8px;padding-inline-start:20px">${R.slice(0,12).map(r=>`<li>${esc(r.name||'')}</li>`).join('')}${R.length>12?`<li>و${R.length-12} أخرى</li>`:''}</ul>
+    <p style="margin:0">تحلّ محل كل ما في هذا الجهاز: التقارير، وإعدادات الإنفوجرافيك الأسبوعي والربعي، والشعارات، ولوحة التحكم. ويمكنك التراجع بعدها بزر التراجع.</p>`,
+    actions:[{label:'استعادة الكل',cls:'primary',run:()=>{ state=fixState(JSON.parse(JSON.stringify(data.state))); save(); igSnap=null; renderAll(); toast('اُستعيدت النسخة الاحتياطية'); }},{label:'إلغاء'}]});
+}
 /* ---------- v2: fit-to-width preview ---------- */
 function mountFit(el, w){
   const wrap=document.getElementById('fitwrap'); if(!wrap) return;
@@ -2072,6 +2085,10 @@ function renderPanel(){
       <div class="chips">${[['auto','تلقائي حسب الجهاز'],['light','خلفية فاتحة'],['dark','خلفية داكنة']].map(([v,l])=>`<button type="button" class="chip" data-themeset="${v}" aria-pressed="${getTheme()===v}">${l}</button>`).join('')}</div>
       <p class="hint" style="margin:0">يغيّر خلفية التطبيق فقط. التقرير والإنفوجرافيك يُصدَّران بخلفية فاتحة دائماً.</p>
     </div></section>
+    <section class="card pcard"><div class="card-head"><h3>النسخ الاحتياطي والنقل بين الأجهزة</h3></div><div class="pc-b">
+      <p class="hint" style="margin:0">البيانات محفوظة في هذا المتصفح فقط، ولا تتزامن بين الجوال والكمبيوتر. لنقل كل شيء: احفظ نسخة كاملة هنا، ثم افتحها في الجهاز الآخر من «استيراد».</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn sm primary" data-exp="backup">حفظ نسخة احتياطية كاملة</button><button type="button" class="btn sm" data-restore="1">استعادة نسخة احتياطية</button></div>
+    </div></section>
     <section class="card pcard"><div class="card-head"><h3>منازل متوسط الرضا العشرية</h3></div><div class="pc-b">
       <div class="chips">${[[0,'بدون: 85%'],[1,'منزلة: 85.3%'],[2,'منزلتان: 85.32%']].map(([v,l])=>`<button type="button" class="chip" data-satdec="${v}" aria-pressed="${state.satDec===v}">${l}</button>`).join('')}</div>
       <p class="hint" style="margin:0">في كل مكان يظهر فيه متوسط الرضا في الإنفوجرافيك الربعي وشرائح العرض: بطاقات الأرباع، والمستشفيات، والمراكز، والتصانيف. فرق المقارنة بالربع السابق يبقى بمنزلة واحدة.</p>
@@ -2156,6 +2173,8 @@ function onClickV2(b){
   if(b.id==='btnSave'||d.act==='save-now'){ saveNow(); return true; }
   if(b.id==='btnSide'){ openSide(); return true; }
   if(d.pexp){ runExport(d.pexp); return true; }
+  if(d.restore){ document.getElementById('dbInput').click(); return true; }
+  if(d.exp==='backup'){ runExport('backup'); return true; }
   if(d.satdec!=null){ state.satDec=+d.satdec; save(); document.querySelectorAll('[data-satdec]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.satdec===d.satdec)); toast('حُفظت منازل الرضا'); return true; }
   if(d.themeset){ setTheme(d.themeset); document.querySelectorAll('[data-themeset]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.themeset===d.themeset)); return true; }
   if(d.theme){ state.info.theme=d.theme; save(); renderBody(); return true; }
